@@ -30,8 +30,10 @@
           <div ref="contentWrapperRef" class="bottom-sheet-content"
             :class="{ 'bottom-sheet-content--scrollable': isScrollable }" @scroll="handleContentScroll"
             @touchstart="handleContentTouchStart" @touchmove="handleContentTouchMove" @touchend="handleContentTouchEnd">
-            <component :is="contentComponent" v-bind="contentProps" v-if="contentComponent" />
-            <slot v-else />
+            <div ref="innerContentRef" class="bottom-sheet-content-inner">
+              <component :is="contentComponent" v-bind="contentProps" v-if="contentComponent" />
+              <slot v-else />
+            </div>
           </div>
         </div>
       </div>
@@ -41,7 +43,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
-import type { BottomSheetProps } from '../types';
+import type { BottomSheetProps } from '../types/bottom-sheet.types';
 
 const props = withDefaults(defineProps<BottomSheetProps>(), {
   modelValue: false,
@@ -70,8 +72,10 @@ const emit = defineEmits<{
 // Refs
 const headerRef = ref<HTMLElement | null>(null)
 const contentWrapperRef = ref<HTMLElement | null>(null)
+const innerContentRef = ref<HTMLElement | null>(null)
 const contentScrollTop = ref(0)
 const isDragging = ref(false)
+const isClosing = ref(false)
 const isVisible = ref(props.modelValue)
 const detectedMode = ref<'dynamic' | 'auto-fit' | 'fixed'>('dynamic')
 const currentSize = ref<'small' | 'medium' | 'large'>(props.initialSize || 'small')
@@ -82,6 +86,10 @@ const contentHeight = ref(0)
 const gestureStartY = ref(0)
 const gestureCurrentY = ref(0)
 const gestureStartHeight = ref(0)
+
+// Resize Observer
+let headerResizeObserver: ResizeObserver | null = null
+let contentResizeObserver: ResizeObserver | null = null
 
 // Computed
 const contentComponent = computed(() => props.component)
@@ -95,7 +103,34 @@ const effectiveMode = computed(() => {
 })
 
 const isScrollable = computed(() => {
-  return effectiveMode.value === 'dynamic' && currentSize.value === 'large'
+  if (effectiveMode.value === 'dynamic' && currentSize.value === 'large') return true
+  if (effectiveMode.value === 'fixed') {
+    // Enable scrolling in fixed mode if content overflows
+    const currentHeight = sizesPx.value[currentSize.value]
+    return contentHeight.value > (currentHeight - headerHeight.value)
+  }
+  if (effectiveMode.value === 'auto-fit') {
+    const totalContentHeight = headerHeight.value + contentHeight.value
+    const windowHeight = window.innerHeight
+    
+    // Calculate max height in pixels to compare
+    let maxHeightPx = windowHeight * 0.95 // Default 95%
+    
+    if (props.maxHeight) {
+      const parsed = parseFloat(props.maxHeight)
+      if (!isNaN(parsed)) {
+        if (props.maxHeight.endsWith('px')) {
+           maxHeightPx = parsed
+        } else {
+           // Assume vh/dvh/%
+           maxHeightPx = (parsed / 100) * windowHeight
+        }
+      }
+    }
+    
+    return totalContentHeight > maxHeightPx
+  }
+  return false
 })
 
 // Dynamic Sizes Calculation
@@ -104,7 +139,25 @@ const sizesPx = computed(() => {
   const header = headerHeight.value
 
   const small = header
-  const medium = header + (windowHeight * 0.45)
+  
+  if (effectiveMode.value === 'fixed') {
+     return {
+        small,
+        medium: windowHeight * 0.45,
+        large: windowHeight * 0.95
+     }
+  }
+
+  const maxMedium = windowHeight * 0.45
+  // Medium should be at least the header size, and at most maxMedium.
+  // It should try to fit the content (header + contentHeight).
+  const contentBasedMedium = header + contentHeight.value
+
+  // If contentHeight is 0 (not yet measured), default to maxMedium to avoid flashing small
+  const medium = contentHeight.value > 0
+    ? Math.min(maxMedium, contentBasedMedium)
+    : maxMedium
+
   const large = windowHeight * 0.95
 
   return { small, medium, large }
@@ -123,13 +176,53 @@ const panelStyles = computed(() => {
   let height: string
 
   if (effectiveMode.value === 'auto-fit') {
-    const maxHeightVh = parseFloat(props.maxHeight || '95vh')
-    const contentVh = (contentHeight.value / window.innerHeight) * 100
-    const finalVh = Math.min(contentVh + 10, maxHeightVh)
-    height = `${finalVh}vh`
+    const totalContentHeight = headerHeight.value + contentHeight.value
+    const windowHeight = window.innerHeight
+    
+    // Calculate required height in dvh
+    const requiredDvh = (totalContentHeight / windowHeight) * 100
+    
+    // Parse max-height (default to 95dvh)
+    let maxDvh = 95
+    if (props.maxHeight) {
+      const parsed = parseFloat(props.maxHeight)
+      if (!isNaN(parsed)) {
+        // If it's pixels, convert to dvh, otherwise assume it's already a relative unit (vh/dvh/%)
+        if (props.maxHeight.endsWith('px')) {
+           maxDvh = (parsed / windowHeight) * 100
+        } else {
+           maxDvh = parsed
+        }
+      }
+    }
+
+    const finalDvh = Math.min(requiredDvh, maxDvh)
+    height = `${finalDvh}dvh`
+    
+    // Add drag transform for auto-fit
+    if (isDragging.value) {
+      const deltaY = gestureCurrentY.value - gestureStartY.value
+      if (deltaY > 0) { // Only allow dragging down
+         return {
+            height,
+            transform: `translateY(${deltaY}px)`
+         }
+      }
+    }
   } else if (effectiveMode.value === 'fixed') {
     // Fixed mode: Stick to initial size or current size, no dynamic gestures affecting height directly
     height = `${sizesPx.value[currentSize.value]}px`
+    
+    // Add drag transform for fixed mode (swipe to close)
+    if (isDragging.value) {
+      const deltaY = gestureCurrentY.value - gestureStartY.value
+      if (deltaY > 0) { // Only allow dragging down
+         return {
+            height,
+            transform: `translateY(${deltaY}px)`
+         }
+      }
+    }
   } else {
     // Dynamic
     if (isDragging.value) {
@@ -147,7 +240,7 @@ const panelStyles = computed(() => {
 
   return {
     height,
-    transform: isVisible.value ? 'translateY(0)' : 'translateY(100%)'
+    transform: isClosing.value ? 'translateY(100%)' : 'translateY(0)'
   }
 })
 
@@ -160,19 +253,17 @@ const updateHeaderHeight = () => {
 
 const detectContentMode = async () => {
   await nextTick()
-  if (!contentWrapperRef.value) return
+  if (!innerContentRef.value) return
 
-  const wrapper = contentWrapperRef.value
-  contentHeight.value = wrapper.scrollHeight
-
-  // Default detection logic remains simple, but we now have canExpandToLarge computed
+  contentHeight.value = innerContentRef.value.offsetHeight
   detectedMode.value = 'dynamic'
 }
 
 // --- Gesture Handling ---
 
 const startDrag = (y: number) => {
-  if (effectiveMode.value === 'fixed') return // No dragging in fixed mode
+  // Removed early return for fixed mode to allow swipe-to-close
+  // if (effectiveMode.value === 'fixed') return 
 
   isDragging.value = true
   gestureStartY.value = y
@@ -191,6 +282,21 @@ const endDrag = (y: number) => {
 
   const deltaY = y - gestureStartY.value
   const SNAP_THRESHOLD = 50
+
+  // Fixed mode: only allow closing on swipe down
+  if (effectiveMode.value === 'fixed') {
+    if (deltaY > SNAP_THRESHOLD) {
+      handleClose()
+    }
+    return
+  }
+
+  if (effectiveMode.value === 'auto-fit') {
+    if (deltaY > SNAP_THRESHOLD) {
+      handleClose()
+    }
+    return
+  }
 
   if (deltaY > SNAP_THRESHOLD) {
     // Dragged Down
@@ -215,8 +321,6 @@ const endDrag = (y: number) => {
 }
 
 const handleHeaderPan = (details: any) => {
-  if (effectiveMode.value === 'fixed') return
-
   const { isFirst, isFinal, position } = details
 
   if (isFirst) {
@@ -232,23 +336,26 @@ let isContentTouchActive = false
 let contentTouchStartY = 0
 
 const handleContentTouchStart = (e: TouchEvent) => {
-  if (effectiveMode.value === 'fixed') return
-
   const touch = e.touches[0]
   if (touch === undefined) return
   contentTouchStartY = touch.clientY
   isContentTouchActive = true
 
-  if (currentSize.value !== 'large') {
+  // Fixed mode: allow dragging only when at top
+  if (effectiveMode.value === 'fixed') {
+    // Will be handled in touchmove
+    return
+  }
+
+  if (currentSize.value !== 'large' && effectiveMode.value !== 'auto-fit') {
     startDrag(touch.clientY)
   } else {
-    // Large mode
+    // Large mode or auto-fit
     // Only drag if at top and pulling down
   }
 }
 
 const handleContentTouchMove = (e: TouchEvent) => {
-  if (effectiveMode.value === 'fixed') return
   if (!isContentTouchActive) return
 
   const touch = e.touches[0]
@@ -259,6 +366,25 @@ const handleContentTouchMove = (e: TouchEvent) => {
   if (isDragging.value) {
     e.preventDefault()
     updateDrag(currentY)
+    return
+  }
+
+  if (effectiveMode.value === 'fixed') {
+    if (contentScrollTop.value <= 0 && deltaY > 0) {
+      startDrag(contentTouchStartY)
+      updateDrag(currentY)
+      e.preventDefault()
+    }
+    return
+  }
+
+  if (effectiveMode.value === 'auto-fit') {
+    if (contentScrollTop.value <= 0 && deltaY > 0) {
+      startDrag(contentTouchStartY)
+      updateDrag(currentY)
+      e.preventDefault()
+    }
+    // Else: allow native scroll
     return
   }
 
@@ -278,8 +404,6 @@ const handleContentTouchMove = (e: TouchEvent) => {
 }
 
 const handleContentTouchEnd = (e: TouchEvent) => {
-  if (effectiveMode.value === 'fixed') return
-
   isContentTouchActive = false
   if (isDragging.value) {
     const touch = e.changedTouches[0]
@@ -305,6 +429,9 @@ const animateToSize = (size: 'small' | 'medium' | 'large') => {
 }
 
 const handleHeaderClick = () => {
+  // In auto-fit, we might want to allow closing on click if it's a toggle, 
+  // but standard behavior is usually just for expansion. 
+  // For now, we keep it disabled for auto-fit as requested (only swipe down).
   if (effectiveMode.value === 'auto-fit' || effectiveMode.value === 'fixed') return
 
   if (currentSize.value === 'small') {
@@ -325,12 +452,28 @@ const handleInteractionLayerClick = () => {
 
 const handleClose = () => {
   if (props.persistent) return
-  isVisible.value = false
-  emit('update:modelValue', false)
+  
+  // Start the close animation
+  isClosing.value = true
   emit('close')
+  
+  // Wait for the animation to complete before actually hiding
   setTimeout(() => {
+    isVisible.value = false
+    isClosing.value = false
+    emit('update:modelValue', false)
     emit('closed')
-  }, 300)
+  }, 500)
+}
+
+const setupContentObserver = () => {
+  if (contentResizeObserver) contentResizeObserver.disconnect()
+  if (innerContentRef.value) {
+    contentResizeObserver = new ResizeObserver(() => {
+      detectContentMode()
+    })
+    contentResizeObserver.observe(innerContentRef.value)
+  }
 }
 
 const open = () => {
@@ -339,6 +482,7 @@ const open = () => {
   nextTick(() => {
     updateHeaderHeight()
     detectContentMode()
+    setupContentObserver()
     emit('opened')
   })
 }
@@ -353,22 +497,22 @@ watch(() => props.modelValue, (newVal) => {
   else close()
 })
 
-// Resize Observer for Header
-let resizeObserver: ResizeObserver | null = null
-
 onMounted(() => {
   if (props.modelValue) open()
 
   if (headerRef.value) {
-    resizeObserver = new ResizeObserver(() => {
+    headerResizeObserver = new ResizeObserver(() => {
       updateHeaderHeight()
     })
-    resizeObserver.observe(headerRef.value)
+    headerResizeObserver.observe(headerRef.value)
   }
+
+  setupContentObserver()
 })
 
 onBeforeUnmount(() => {
-  if (resizeObserver) resizeObserver.disconnect()
+  if (headerResizeObserver) headerResizeObserver.disconnect()
+  if (contentResizeObserver) contentResizeObserver.disconnect()
 })
 
 defineExpose({
@@ -410,8 +554,8 @@ defineExpose({
   display: flex;
   flex-direction: column;
   pointer-events: auto; // Content is interactive
-  transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: height, transform;
 
   &.bottom-sheet--dragging {
@@ -463,19 +607,17 @@ defineExpose({
 // Transition
 .bottom-sheet-enter-active,
 .bottom-sheet-leave-active {
-  transition: opacity 0.3s ease;
-
   .bottom-sheet-panel {
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   }
 }
 
 .bottom-sheet-enter-from,
 .bottom-sheet-leave-to {
-  opacity: 0;
-
   .bottom-sheet-panel {
     transform: translateY(100%);
   }
 }
 </style>
+
+
