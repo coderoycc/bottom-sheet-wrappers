@@ -10,7 +10,6 @@ export interface BottomSheetProps {
   title?: string
   mode?: SheetMode
   initialSize?: SheetSize
-  allowResize?: boolean
   maxHeight?: string
   showHandle?: boolean
   showCloseButton?: boolean
