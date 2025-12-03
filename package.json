@@ -1,21 +1,62 @@
 {
-  "name": "bottom-sheet-wrappers",
-  "private": true,
-  "version": "0.0.0",
+  "name": "@coderoycc/bottom-sheet-wrappers",
+  "version": "0.1.0",
+  "description": "A flexible Vue 3 bottom sheet component with Quasar directives support",
   "type": "module",
+  "main": "./dist/bottom-sheet-wrappers.umd.js",
+  "module": "./dist/bottom-sheet-wrappers.es.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/bottom-sheet-wrappers.es.js",
+      "require": "./dist/bottom-sheet-wrappers.umd.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./dist/style.css": "./dist/bottom-sheet-wrappers.css"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "build": "vite build && vue-tsc --declaration --emitDeclarationOnly --outDir dist",
+    "preview": "vite preview",
+    "prepublishOnly": "npm run build"
   },
-  "dependencies": {
-    "vue": "^3.5.24"
+  "keywords": [
+    "vue",
+    "vue3",
+    "bottom-sheet",
+    "modal",
+    "quasar",
+    "touch-gestures",
+    "mobile"
+  ],
+  "author": "coderoycc",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/coderoycc/bottom-sheet-wrappers"
+  },
+  "peerDependencies": {
+    "vue": "^3.5.0",
+    "quasar": "^2.18.0",
+    "@quasar/extras": "^1.17.0"
   },
   "devDependencies": {
+    "@quasar/vite-plugin": "^1.10.0",
     "@types/node": "^24.10.1",
     "@vitejs/plugin-vue": "^6.0.1",
     "@vue/tsconfig": "^0.8.1",
+    "sass": "^1.94.2",
     "typescript": "^5.9.3",
-    "vite": "^7.2.4"
+    "vite": "^7.2.4",
+    "vue-tsc": "^3.1.5"
+  },
+  "dependencies": {
+    "@quasar/extras": "^1.17.0",
+    "quasar": "^2.18.6",
+    "vue": "^3.5.24"
   }
 }

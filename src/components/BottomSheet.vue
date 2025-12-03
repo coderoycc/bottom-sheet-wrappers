@@ -15,7 +15,7 @@
           <!-- Header con Handle -->
           <div ref="headerRef" class="bottom-sheet-header" @click="handleHeaderClick"
             v-touch-pan.vertical.prevent.mouse="handleHeaderPan">
-            <div v-if="showHandle" class="bottom-sheet-handle" />
+            <div class="bottom-sheet-handle" />
 
             <div class="bottom-sheet-header-content">
               <slot name="header">
@@ -42,20 +42,18 @@
 </template>
 
 <script setup lang="ts">
+import { QBtn } from 'quasar';
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
-import type { BottomSheetProps } from '../types/bottom-sheet.types';
+import type { BottomSheetProps } from '../types';
 
 const props = withDefaults(defineProps<BottomSheetProps>(), {
   modelValue: false,
   title: '',
   mode: undefined,
   initialSize: 'small',
-  allowResize: true,
   maxHeight: '95vh',
-  showHandle: true,
   showCloseButton: true,
   showBackdrop: false,
-  closeOnBackdrop: true,
   persistent: false,
   zIndex: 9000,
   clickToCollapse: false
@@ -238,10 +236,14 @@ const panelStyles = computed(() => {
     }
   }
 
-  return {
-    height,
-    transform: isClosing.value ? 'translateY(100%)' : 'translateY(0)'
+  const styles: any = { height }
+  
+  // Only apply transform when closing (Vue transition handles opening)
+  if (isClosing.value) {
+    styles.transform = 'translateY(100%)'
   }
+  
+  return styles
 })
 
 // Methods
@@ -413,7 +415,6 @@ const handleContentTouchEnd = (e: TouchEvent) => {
 }
 
 const animateToSize = (size: 'small' | 'medium' | 'large') => {
-  if (!props.allowResize && effectiveMode.value !== 'fixed') return
   if (effectiveMode.value === 'fixed') return // Explicitly block resizing in fixed mode
 
   // Check smart expansion limit
@@ -492,7 +493,7 @@ const close = () => {
 }
 
 // Watchers
-watch(() => props.modelValue, (newVal) => {
+watch(() => props.modelValue, (newVal: boolean) => {
   if (newVal) open()
   else close()
 })
@@ -619,5 +620,6 @@ defineExpose({
   }
 }
 </style>
+
 
 
