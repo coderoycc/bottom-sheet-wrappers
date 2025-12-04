@@ -1,13 +1,11 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { QBtn } from 'quasar'
 import BottomSheet from './BottomSheet.vue'
 
 defineProps({
   msg: String,
 })
 const open = ref(true)
-const count = ref(0)
 </script>
 
 <template>
@@ -19,7 +17,7 @@ const count = ref(0)
       <li>Item 4</li>
       <li>Item 5</li>
       <li>Item 6</li>
-      <li>Item 7</li>
+      <!-- <li>Item 7</li>
       <li>Item 8</li>
       <li>Item 9</li>
       <li>Item 10</li>
@@ -33,17 +31,14 @@ const count = ref(0)
       <li>Item 18</li>
       <li>Item 19</li>
       <li>Item 20</li>
+      <li>Item 20</li>
+      <li>Item 20</li> -->
     </ul>
   </BottomSheet>
-  <!-- <h1>{{ msg }}</h1>
-
-  <QBtn label="Click me" @click="count++" />
-  
-  <div class="card">
-    asdfasdf {{ count }}
-  </div> -->
 </template>
 
 <style scoped>
-
+ul > li {
+  padding-bottom: 0.5rem;
+}
 </style>

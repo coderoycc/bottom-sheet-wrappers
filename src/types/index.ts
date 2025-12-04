@@ -11,13 +11,11 @@ export interface BottomSheetProps {
   mode?: SheetMode
   initialSize?: SheetSize
   maxHeight?: string
-  showHandle?: boolean
   showCloseButton?: boolean
   showBackdrop?: boolean
   closeOnBackdrop?: boolean
   persistent?: boolean
   zIndex?: number
-  clickToCollapse?: boolean
 }
 
 export interface SheetInstance {

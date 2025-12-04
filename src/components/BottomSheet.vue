@@ -2,9 +2,14 @@
   <Teleport to="body">
     <Transition name="bottom-sheet">
       <div v-if="isVisible" class="bottom-sheet-wrapper" :style="{ zIndex: zIndex }">
-        <!-- Interaction Layer (Invisible Backdrop for clickToCollapse) -->
-        <div v-if="clickToCollapse && currentSize !== 'small'" class="bottom-sheet-interaction-layer"
-          @click="handleInteractionLayerClick"></div>
+        <!-- Backdrop Layer -->
+        <div v-if="shouldShowBackdrop" 
+          class="bottom-sheet-backdrop" 
+          :class="{ 'bottom-sheet-backdrop--visible': showBackdrop }"
+          @click="handleBackdropClick"
+          @touchstart="handleBackdropTouchStart"
+          @touchmove="handleBackdropTouchMove"
+          @touchend="handleBackdropTouchEnd"></div>
 
         <!-- Panel Principal -->
         <div class="bottom-sheet-panel" :class="[
@@ -22,7 +27,9 @@
                 <div class="bottom-sheet-title">{{ title }}</div>
               </slot>
 
-              <q-btn v-if="showCloseButton" flat dense round icon="close" @click.stop="handleClose" />
+              <button v-if="showCloseButton" class="bottom-sheet-close-btn" @click.stop="handleClose">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
             </div>
           </div>
 
@@ -42,9 +49,20 @@
 </template>
 
 <script setup lang="ts">
-import { QBtn } from 'quasar';
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
-import type { BottomSheetProps } from '../types';
+import type { BottomSheetProps } from '../types'
+import {
+  useModeDetection,
+  useSizeCalculation,
+  useGestureHandling,
+  useBackdropInteraction,
+  useContentScroll,
+  useResizeObservers
+} from '../composables/bottom-sheet'
+
+// ============================================================================
+// Props & Emits
+// ============================================================================
 
 const props = withDefaults(defineProps<BottomSheetProps>(), {
   modelValue: false,
@@ -54,9 +72,9 @@ const props = withDefaults(defineProps<BottomSheetProps>(), {
   maxHeight: '95vh',
   showCloseButton: true,
   showBackdrop: false,
+  closeOnBackdrop: false,
   persistent: false,
-  zIndex: 9000,
-  clickToCollapse: false
+  zIndex: 9000
 })
 
 const emit = defineEmits<{
@@ -67,391 +85,134 @@ const emit = defineEmits<{
   'size-change': [size: 'small' | 'medium' | 'large']
 }>()
 
-// Refs
+// ============================================================================
+// DOM Refs
+// ============================================================================
+
 const headerRef = ref<HTMLElement | null>(null)
 const contentWrapperRef = ref<HTMLElement | null>(null)
 const innerContentRef = ref<HTMLElement | null>(null)
-const contentScrollTop = ref(0)
-const isDragging = ref(false)
-const isClosing = ref(false)
-const isVisible = ref(props.modelValue)
-const detectedMode = ref<'dynamic' | 'auto-fit' | 'fixed'>('dynamic')
-const currentSize = ref<'small' | 'medium' | 'large'>(props.initialSize || 'small')
-const headerHeight = ref(0)
-const contentHeight = ref(0)
 
-// Gesture tracking
+// ============================================================================
+// State
+// ============================================================================
+
+const isVisible = ref(props.modelValue)
+const isClosing = ref(false)
+
+// ============================================================================
+// Composables
+// ============================================================================
+
+// Resize Observers - tracks header and content dimensions
+const {
+  headerHeight,
+  contentHeight,
+  setupHeaderObserver,
+  setupContentObserver
+} = useResizeObservers({
+  headerRef,
+  innerContentRef,
+  onContentResize: undefined // Will be set after mode detection is available
+})
+
+// Mode Detection - determines effective mode (dynamic/auto-fit/fixed)
+const {
+  effectiveMode,
+  detectContentMode
+} = useModeDetection({
+  props,
+  innerContentRef,
+  contentHeight
+})
+
+// Content Scroll - tracks scroll position
+const {
+  contentScrollTop,
+  handleContentScroll
+} = useContentScroll()
+
+// Initialize gesture state refs (will be populated by gesture handling)
+const isDragging = ref(false)
 const gestureStartY = ref(0)
 const gestureCurrentY = ref(0)
 const gestureStartHeight = ref(0)
 
-// Resize Observer
-let headerResizeObserver: ResizeObserver | null = null
-let contentResizeObserver: ResizeObserver | null = null
+// Size Calculation - computes sizes, styles, and scrollability
+const {
+  currentSize,
+  sizesPx,
+  canExpandToLarge,
+  isScrollable,
+  panelStyles,
+  animateToSize
+} = useSizeCalculation({
+  effectiveMode,
+  headerHeight,
+  contentHeight,
+  isDragging,
+  isClosing,
+  gestureState: {
+    startY: gestureStartY,
+    currentY: gestureCurrentY,
+    startHeight: gestureStartHeight
+  },
+  props,
+  emit
+})
 
+// Gesture Handling - manages all drag/swipe interactions
+const {
+  isDragging: gestureIsDragging,
+  gestureState,
+  handleHeaderPan,
+  handleHeaderClick,
+  handleContentTouchStart,
+  handleContentTouchMove,
+  handleContentTouchEnd
+} = useGestureHandling({
+  effectiveMode,
+  currentSize,
+  sizesPx,
+  canExpandToLarge,
+  contentScrollTop,
+  animateToSize,
+  handleClose: () => handleClose()
+})
+
+// Sync gesture state from gesture handling to our refs
+watch(gestureIsDragging, (val) => { isDragging.value = val })
+watch(() => gestureState.startY.value, (val) => { gestureStartY.value = val })
+watch(() => gestureState.currentY.value, (val) => { gestureCurrentY.value = val })
+watch(() => gestureState.startHeight.value, (val) => { gestureStartHeight.value = val })
+
+// Backdrop Interaction - manages backdrop visibility and events
+const {
+  shouldShowBackdrop,
+  handleBackdropClick,
+  handleBackdropTouchStart,
+  handleBackdropTouchMove,
+  handleBackdropTouchEnd
+} = useBackdropInteraction({
+  effectiveMode,
+  currentSize,
+  props,
+  animateToSize,
+  handleClose: () => handleClose()
+})
+
+// ============================================================================
 // Computed
+// ============================================================================
+
 const contentComponent = computed(() => props.component)
 const contentProps = computed(() => props.props || {})
 
-const effectiveMode = computed(() => {
-  if (props.mode) return props.mode
-  const componentMeta = (props.component as any)?.bottomSheet
-  if (componentMeta?.mode) return componentMeta.mode
-  return detectedMode.value
-})
-
-const isScrollable = computed(() => {
-  if (effectiveMode.value === 'dynamic' && currentSize.value === 'large') return true
-  if (effectiveMode.value === 'fixed') {
-    // Enable scrolling in fixed mode if content overflows
-    const currentHeight = sizesPx.value[currentSize.value]
-    return contentHeight.value > (currentHeight - headerHeight.value)
-  }
-  if (effectiveMode.value === 'auto-fit') {
-    const totalContentHeight = headerHeight.value + contentHeight.value
-    const windowHeight = window.innerHeight
-    
-    // Calculate max height in pixels to compare
-    let maxHeightPx = windowHeight * 0.95 // Default 95%
-    
-    if (props.maxHeight) {
-      const parsed = parseFloat(props.maxHeight)
-      if (!isNaN(parsed)) {
-        if (props.maxHeight.endsWith('px')) {
-           maxHeightPx = parsed
-        } else {
-           // Assume vh/dvh/%
-           maxHeightPx = (parsed / 100) * windowHeight
-        }
-      }
-    }
-    
-    return totalContentHeight > maxHeightPx
-  }
-  return false
-})
-
-// Dynamic Sizes Calculation
-const sizesPx = computed(() => {
-  const windowHeight = window.innerHeight
-  const header = headerHeight.value
-
-  const small = header
-  
-  if (effectiveMode.value === 'fixed') {
-     return {
-        small,
-        medium: windowHeight * 0.45,
-        large: windowHeight * 0.95
-     }
-  }
-
-  const maxMedium = windowHeight * 0.45
-  // Medium should be at least the header size, and at most maxMedium.
-  // It should try to fit the content (header + contentHeight).
-  const contentBasedMedium = header + contentHeight.value
-
-  // If contentHeight is 0 (not yet measured), default to maxMedium to avoid flashing small
-  const medium = contentHeight.value > 0
-    ? Math.min(maxMedium, contentBasedMedium)
-    : maxMedium
-
-  const large = windowHeight * 0.95
-
-  return { small, medium, large }
-})
-
-// Smart Expansion Logic
-const canExpandToLarge = computed(() => {
-  // If content fits in medium, don't expand to large
-  // We compare contentHeight (px) with the available space in medium (medium - header)
-  const availableHeightInMedium = sizesPx.value.medium - sizesPx.value.small
-  // Add a small buffer (e.g. 10px) to avoid edge cases
-  return contentHeight.value > (availableHeightInMedium + 10)
-})
-
-const panelStyles = computed(() => {
-  let height: string
-
-  if (effectiveMode.value === 'auto-fit') {
-    const totalContentHeight = headerHeight.value + contentHeight.value
-    const windowHeight = window.innerHeight
-    
-    // Calculate required height in dvh
-    const requiredDvh = (totalContentHeight / windowHeight) * 100
-    
-    // Parse max-height (default to 95dvh)
-    let maxDvh = 95
-    if (props.maxHeight) {
-      const parsed = parseFloat(props.maxHeight)
-      if (!isNaN(parsed)) {
-        // If it's pixels, convert to dvh, otherwise assume it's already a relative unit (vh/dvh/%)
-        if (props.maxHeight.endsWith('px')) {
-           maxDvh = (parsed / windowHeight) * 100
-        } else {
-           maxDvh = parsed
-        }
-      }
-    }
-
-    const finalDvh = Math.min(requiredDvh, maxDvh)
-    height = `${finalDvh}dvh`
-    
-    // Add drag transform for auto-fit
-    if (isDragging.value) {
-      const deltaY = gestureCurrentY.value - gestureStartY.value
-      if (deltaY > 0) { // Only allow dragging down
-         return {
-            height,
-            transform: `translateY(${deltaY}px)`
-         }
-      }
-    }
-  } else if (effectiveMode.value === 'fixed') {
-    // Fixed mode: Stick to initial size or current size, no dynamic gestures affecting height directly
-    height = `${sizesPx.value[currentSize.value]}px`
-    
-    // Add drag transform for fixed mode (swipe to close)
-    if (isDragging.value) {
-      const deltaY = gestureCurrentY.value - gestureStartY.value
-      if (deltaY > 0) { // Only allow dragging down
-         return {
-            height,
-            transform: `translateY(${deltaY}px)`
-         }
-      }
-    }
-  } else {
-    // Dynamic
-    if (isDragging.value) {
-      const deltaY = gestureCurrentY.value - gestureStartY.value
-      const newHeight = gestureStartHeight.value - deltaY
-
-      const minHeight = sizesPx.value.small
-      const maxHeight = canExpandToLarge.value ? sizesPx.value.large : sizesPx.value.medium
-
-      height = `${Math.max(minHeight, Math.min(maxHeight, newHeight))}px`
-    } else {
-      height = `${sizesPx.value[currentSize.value]}px`
-    }
-  }
-
-  const styles: any = { height }
-  
-  // Only apply transform when closing (Vue transition handles opening)
-  if (isClosing.value) {
-    styles.transform = 'translateY(100%)'
-  }
-  
-  return styles
-})
-
+// ============================================================================
 // Methods
-const updateHeaderHeight = () => {
-  if (headerRef.value) {
-    headerHeight.value = headerRef.value.offsetHeight
-  }
-}
+// ============================================================================
 
-const detectContentMode = async () => {
-  await nextTick()
-  if (!innerContentRef.value) return
-
-  contentHeight.value = innerContentRef.value.offsetHeight
-  detectedMode.value = 'dynamic'
-}
-
-// --- Gesture Handling ---
-
-const startDrag = (y: number) => {
-  // Removed early return for fixed mode to allow swipe-to-close
-  // if (effectiveMode.value === 'fixed') return 
-
-  isDragging.value = true
-  gestureStartY.value = y
-  gestureCurrentY.value = y
-  gestureStartHeight.value = sizesPx.value[currentSize.value]
-}
-
-const updateDrag = (y: number) => {
-  if (!isDragging.value) return
-  gestureCurrentY.value = y
-}
-
-const endDrag = (y: number) => {
-  if (!isDragging.value) return
-  isDragging.value = false
-
-  const deltaY = y - gestureStartY.value
-  const SNAP_THRESHOLD = 50
-
-  // Fixed mode: only allow closing on swipe down
-  if (effectiveMode.value === 'fixed') {
-    if (deltaY > SNAP_THRESHOLD) {
-      handleClose()
-    }
-    return
-  }
-
-  if (effectiveMode.value === 'auto-fit') {
-    if (deltaY > SNAP_THRESHOLD) {
-      handleClose()
-    }
-    return
-  }
-
-  if (deltaY > SNAP_THRESHOLD) {
-    // Dragged Down
-    if (currentSize.value === 'large') {
-      animateToSize('medium')
-    } else if (currentSize.value === 'medium') {
-      animateToSize('small')
-    }
-  } else if (deltaY < -SNAP_THRESHOLD) {
-    // Dragged Up
-    if (currentSize.value === 'small') {
-      animateToSize('medium')
-    } else if (currentSize.value === 'medium') {
-      if (canExpandToLarge.value) {
-        animateToSize('large')
-      } else {
-        // Snap back to medium if content is small
-        animateToSize('medium')
-      }
-    }
-  }
-}
-
-const handleHeaderPan = (details: any) => {
-  const { isFirst, isFinal, position } = details
-
-  if (isFirst) {
-    startDrag(position.top)
-  } else if (isFinal) {
-    endDrag(position.top)
-  } else {
-    updateDrag(position.top)
-  }
-}
-
-let isContentTouchActive = false
-let contentTouchStartY = 0
-
-const handleContentTouchStart = (e: TouchEvent) => {
-  const touch = e.touches[0]
-  if (touch === undefined) return
-  contentTouchStartY = touch.clientY
-  isContentTouchActive = true
-
-  // Fixed mode: allow dragging only when at top
-  if (effectiveMode.value === 'fixed') {
-    // Will be handled in touchmove
-    return
-  }
-
-  if (currentSize.value !== 'large' && effectiveMode.value !== 'auto-fit') {
-    startDrag(touch.clientY)
-  } else {
-    // Large mode or auto-fit
-    // Only drag if at top and pulling down
-  }
-}
-
-const handleContentTouchMove = (e: TouchEvent) => {
-  if (!isContentTouchActive) return
-
-  const touch = e.touches[0]
-  if (touch === undefined) return
-  const currentY = touch.clientY
-  const deltaY = currentY - contentTouchStartY
-
-  if (isDragging.value) {
-    e.preventDefault()
-    updateDrag(currentY)
-    return
-  }
-
-  if (effectiveMode.value === 'fixed') {
-    if (contentScrollTop.value <= 0 && deltaY > 0) {
-      startDrag(contentTouchStartY)
-      updateDrag(currentY)
-      e.preventDefault()
-    }
-    return
-  }
-
-  if (effectiveMode.value === 'auto-fit') {
-    if (contentScrollTop.value <= 0 && deltaY > 0) {
-      startDrag(contentTouchStartY)
-      updateDrag(currentY)
-      e.preventDefault()
-    }
-    // Else: allow native scroll
-    return
-  }
-
-  if (currentSize.value === 'large') {
-    if (contentScrollTop.value <= 0 && deltaY > 0) {
-      startDrag(contentTouchStartY)
-      updateDrag(currentY)
-      e.preventDefault()
-    }
-  } else {
-    if (!isDragging.value) {
-      startDrag(contentTouchStartY)
-      updateDrag(currentY)
-    }
-    e.preventDefault()
-  }
-}
-
-const handleContentTouchEnd = (e: TouchEvent) => {
-  isContentTouchActive = false
-  if (isDragging.value) {
-    const touch = e.changedTouches[0]
-    if (touch === undefined) return
-    endDrag(touch.clientY)
-  }
-}
-
-const animateToSize = (size: 'small' | 'medium' | 'large') => {
-  if (effectiveMode.value === 'fixed') return // Explicitly block resizing in fixed mode
-
-  // Check smart expansion limit
-  if (size === 'large' && !canExpandToLarge.value) {
-    // If trying to go large but content is small, stay at medium
-    currentSize.value = 'medium'
-    emit('size-change', 'medium')
-    return
-  }
-
-  currentSize.value = size
-  emit('size-change', size)
-}
-
-const handleHeaderClick = () => {
-  // In auto-fit, we might want to allow closing on click if it's a toggle, 
-  // but standard behavior is usually just for expansion. 
-  // For now, we keep it disabled for auto-fit as requested (only swipe down).
-  if (effectiveMode.value === 'auto-fit' || effectiveMode.value === 'fixed') return
-
-  if (currentSize.value === 'small') {
-    animateToSize('medium')
-  } else if (currentSize.value === 'medium') {
-    animateToSize('large')
-  }
-}
-
-const handleContentScroll = (e: Event) => {
-  const target = e.target as HTMLElement
-  contentScrollTop.value = target.scrollTop
-}
-
-const handleInteractionLayerClick = () => {
-  animateToSize('small')
-}
-
-const handleClose = () => {
+const handleClose = (): void => {
   if (props.persistent) return
   
   // Start the close animation
@@ -464,57 +225,88 @@ const handleClose = () => {
     isClosing.value = false
     emit('update:modelValue', false)
     emit('closed')
+    
+    // Unlock body scroll when closing
+    unlockBodyScroll()
   }, 500)
 }
 
-const setupContentObserver = () => {
-  if (contentResizeObserver) contentResizeObserver.disconnect()
-  if (innerContentRef.value) {
-    contentResizeObserver = new ResizeObserver(() => {
-      detectContentMode()
-    })
-    contentResizeObserver.observe(innerContentRef.value)
-  }
+const lockBodyScroll = (): void => {
+  // Simple approach: just prevent scrolling without changing position
+  document.body.style.overflow = 'hidden'
+  document.body.style.paddingRight = `${window.innerWidth - document.documentElement.clientWidth}px`
 }
 
-const open = () => {
+const unlockBodyScroll = (): void => {
+  // Restore scrolling
+  document.body.style.overflow = ''
+  document.body.style.paddingRight = ''
+}
+
+const open = (): void => {
   isVisible.value = true
   currentSize.value = props.initialSize || 'small'
+  
   nextTick(() => {
-    updateHeaderHeight()
+    setupHeaderObserver()
     detectContentMode()
     setupContentObserver()
     emit('opened')
+    
+    // Lock body scroll after everything is set up (except for dynamic mode at small size)
+    const shouldLockScroll = !(effectiveMode.value === 'dynamic' && currentSize.value === 'small')
+    if (shouldLockScroll) {
+      lockBodyScroll()
+    }
   })
 }
 
-const close = () => {
+const close = (): void => {
   handleClose()
 }
 
+// ============================================================================
 // Watchers
+// ============================================================================
+
 watch(() => props.modelValue, (newVal: boolean) => {
   if (newVal) open()
   else close()
 })
 
+// Watch for size changes in dynamic mode to lock/unlock body scroll
+watch(currentSize, (newSize) => {
+  if (!isVisible.value) return
+  
+  if (effectiveMode.value === 'dynamic') {
+    if (newSize === 'small') {
+      // Unlock scroll when collapsing to small in dynamic mode
+      unlockBodyScroll()
+    } else {
+      // Lock scroll when expanding from small in dynamic mode
+      lockBodyScroll()
+    }
+  }
+})
+
+// ============================================================================
+// Lifecycle
+// ============================================================================
+
 onMounted(() => {
   if (props.modelValue) open()
-
-  if (headerRef.value) {
-    headerResizeObserver = new ResizeObserver(() => {
-      updateHeaderHeight()
-    })
-    headerResizeObserver.observe(headerRef.value)
-  }
-
+  setupHeaderObserver()
   setupContentObserver()
 })
 
 onBeforeUnmount(() => {
-  if (headerResizeObserver) headerResizeObserver.disconnect()
-  if (contentResizeObserver) contentResizeObserver.disconnect()
+  // Ensure body scroll is unlocked when component is destroyed
+  unlockBodyScroll()
 })
+
+// ============================================================================
+// Expose
+// ============================================================================
 
 defineExpose({
   open,
@@ -534,14 +326,19 @@ defineExpose({
   z-index: 9000;
 }
 
-.bottom-sheet-interaction-layer {
+.bottom-sheet-backdrop {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: transparent; // Invisible
-  pointer-events: auto; // Catch clicks
+  background: transparent; // Invisible by default
+  pointer-events: auto; // Catch clicks and gestures
+  transition: background-color 0.3s ease;
+  
+  &.bottom-sheet-backdrop--visible {
+    background: rgba(0, 0, 0, 0.1); // Semi-transparent when visible
+  }
 }
 
 .bottom-sheet-panel {
@@ -549,6 +346,8 @@ defineExpose({
   left: 0;
   right: 0;
   bottom: 0;
+  max-width: 768px; // Max width for tablets (typical portrait tablet width)
+  margin: 0 auto; // Center on larger screens
   background: white;
   border-radius: 16px 16px 0 0;
   box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.15);
@@ -593,6 +392,21 @@ defineExpose({
   color: #1a1a1a;
 }
 
+.bottom-sheet-close-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background-color: transparent;
+  padding: 4px;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #666;
+}
+.bottom-sheet-close-btn:hover {
+  background-color: rgba(0,0,0,0.05);
+}
+
 .bottom-sheet-content {
   flex: 1;
   overflow-y: auto;
@@ -620,6 +434,3 @@ defineExpose({
   }
 }
 </style>
-
-
-

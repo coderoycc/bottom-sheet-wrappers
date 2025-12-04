@@ -1,17 +1,10 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
-import { quasar, transformAssetUrls } from '@quasar/vite-plugin'
 import { resolve } from 'path'
 
 export default defineConfig({
   plugins: [
-    vue({
-      template: { transformAssetUrls }
-    }),
-    quasar({
-      autoImportComponentCase: 'pascal',
-      sassVariables: false
-    })
+    vue()
   ],
 
   build: {
@@ -21,15 +14,11 @@ export default defineConfig({
       fileName: (format) => `bottom-sheet-wrappers.${format}.js`
     },
     rollupOptions: {
-      // Externalize dependencies that shouldn't be bundled
-      external: ['vue', 'quasar', '@quasar/extras'],
+      external: ['vue'],
       output: {
-        // Provide globals for UMD build
         globals: {
-          vue: 'Vue',
-          quasar: 'Quasar'
+          vue: 'Vue'
         },
-        // Preserve CSS
         assetFileNames: (assetInfo) => {
           if (assetInfo.name === 'style.css') return 'bottom-sheet-wrappers.css'
           return assetInfo.name

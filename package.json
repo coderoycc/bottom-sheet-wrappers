@@ -1,7 +1,7 @@
 {
   "name": "@coderoycc/bottom-sheet-wrappers",
   "version": "0.1.0",
-  "description": "A flexible Vue 3 bottom sheet component with Quasar directives support",
+  "description": "A flexible Vue 3 bottom sheet component with touch gesture support",
   "type": "module",
   "main": "./dist/bottom-sheet-wrappers.umd.js",
   "module": "./dist/bottom-sheet-wrappers.es.js",
@@ -29,7 +29,6 @@
     "vue3",
     "bottom-sheet",
     "modal",
-    "quasar",
     "touch-gestures",
     "mobile"
   ],
@@ -40,23 +39,21 @@
     "url": "https://github.com/coderoycc/bottom-sheet-wrappers"
   },
   "peerDependencies": {
-    "vue": "^3.5.0",
-    "quasar": "^2.18.0",
-    "@quasar/extras": "^1.17.0"
+    "vue": "^3.5.0"
   },
   "devDependencies": {
+    "@quasar/extras": "^1.17.0",
     "@quasar/vite-plugin": "^1.10.0",
     "@types/node": "^24.10.1",
     "@vitejs/plugin-vue": "^6.0.1",
     "@vue/tsconfig": "^0.8.1",
+    "quasar": "^2.18.0",
     "sass": "^1.94.2",
     "typescript": "^5.9.3",
     "vite": "^7.2.4",
     "vue-tsc": "^3.1.5"
   },
   "dependencies": {
-    "@quasar/extras": "^1.17.0",
-    "quasar": "^2.18.6",
     "vue": "^3.5.24"
   }
 }
