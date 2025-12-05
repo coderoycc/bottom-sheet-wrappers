@@ -14,7 +14,7 @@ A flexible and powerful Vue 3 bottom sheet component designed specifically for *
 - 🎨 **Customizable Backdrop**: Optional backdrop with configurable behavior
 - 📱 **Mobile-First & Responsive**: Optimized for mobile devices, works great on desktop too
 - 🔧 **TypeScript Support**: Full TypeScript definitions included
-- 🪶 **Lightweight**: Minimal dependencies (only Vue 3 and Quasar touch directives)
+- 🪶 **Lightweight**: Minimal dependencies (only Vue 3)
 - ♿ **Accessible**: Keyboard navigation and ARIA support ready
 - ⚡ **Performant**: 60fps animations with GPU acceleration
 
@@ -339,7 +339,6 @@ MIT License - see [LICENSE](LICENSE) file for details
 ## 🙏 Acknowledgments
 
 - Built with [Vue 3](https://vuejs.org/)
-- Touch gestures powered by [Quasar Framework](https://quasar.dev/)
 - Bundled with [Vite](https://vitejs.dev/)
 
 ---
