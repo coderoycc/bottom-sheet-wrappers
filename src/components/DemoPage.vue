@@ -222,7 +222,7 @@ const showQuickStart = ref(false)
           </div>
         </div>
 
-        <!-- <div class="step">
+        <div class="step">
           <div class="step-number">2</div>
           <div class="step-content">
             <h4>Import in your component</h4>
@@ -242,7 +242,7 @@ import '@coderoycc/bottom-sheet-wrappers/dist/style.css'</code></pre>
   &lt;p&gt;Your content here&lt;/p&gt;
 &lt;/BottomSheet&gt;</code></pre>
           </div>
-        </div> -->
+        </div>
 
         <a href="https://github.com/coderoycc/bottom-sheet-wrappers#readme" target="_blank" class="docs-link">
           View Full Documentation →

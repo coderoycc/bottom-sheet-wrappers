@@ -1,0 +1,20 @@
+# Archivos de desarrollo
+src/
+node_modules/
+.vscode/
+
+# Archivos de configuración
+vite.config.js
+tsconfig.json
+.gitignore
+
+# Archivos de demo
+index.html
+public/
+
+# Documentación de desarrollo
+PUBLISHING.md
+
+# Git
+.git/
+.github/

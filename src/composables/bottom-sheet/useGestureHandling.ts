@@ -23,7 +23,10 @@ interface UseGestureHandlingReturn {
         isActive: Ref<boolean>
         startY: Ref<number>
     }
-    handleHeaderPan: (details: any) => void
+    handleHeaderTouchStart: (event: TouchEvent) => void
+    handleHeaderTouchMove: (event: TouchEvent) => void
+    handleHeaderTouchEnd: (event: TouchEvent) => void
+    handleHeaderMouseDown: (event: MouseEvent) => void
     handleHeaderClick: () => void
     handleContentTouchStart: (event: TouchEvent) => void
     handleContentTouchMove: (event: TouchEvent) => void
@@ -124,16 +127,58 @@ export function useGestureHandling(params: UseGestureHandlingParams): UseGesture
 
     // --- Public Handlers ---
 
-    const handleHeaderPan = (details: any): void => {
-        const { isFirst, isFinal, position } = details
+    const handleHeaderTouchStart = (event: TouchEvent): void => {
+        const touch = event.touches[0]
+        if (touch === undefined) return
 
-        if (isFirst) {
-            startDrag(position.top)
-        } else if (isFinal) {
-            endDrag(position.top)
-        } else {
-            updateDrag(position.top)
-        }
+        startDrag(touch.clientY)
+    }
+
+    const handleHeaderTouchMove = (event: TouchEvent): void => {
+        if (!isDragging.value) return
+
+        const touch = event.touches[0]
+        if (touch === undefined) return
+
+        event.preventDefault()
+        updateDrag(touch.clientY)
+    }
+
+    const handleHeaderTouchEnd = (event: TouchEvent): void => {
+        if (!isDragging.value) return
+
+        const touch = event.changedTouches[0]
+        if (touch === undefined) return
+
+        endDrag(touch.clientY)
+    }
+
+    // Mouse events (desktop)
+    const handleHeaderMouseDown = (event: MouseEvent): void => {
+        event.preventDefault()
+        startDrag(event.clientY)
+
+        // Add global mouse event listeners
+        document.addEventListener('mousemove', handleDocumentMouseMove)
+        document.addEventListener('mouseup', handleDocumentMouseUp)
+    }
+
+    const handleDocumentMouseMove = (event: MouseEvent): void => {
+        if (!isDragging.value) return
+
+        event.preventDefault()
+        updateDrag(event.clientY)
+    }
+
+    const handleDocumentMouseUp = (event: MouseEvent): void => {
+        if (!isDragging.value) return
+
+        event.preventDefault()
+        endDrag(event.clientY)
+
+        // Remove global mouse event listeners
+        document.removeEventListener('mousemove', handleDocumentMouseMove)
+        document.removeEventListener('mouseup', handleDocumentMouseUp)
     }
 
     const handleHeaderClick = (): void => {
@@ -142,11 +187,19 @@ export function useGestureHandling(params: UseGestureHandlingParams): UseGesture
             return
         }
 
-        // Dynamic mode: click to expand
+        // Dynamic mode: click to cycle through sizes
         if (currentSize.value === 'small') {
             animateToSize('medium')
         } else if (currentSize.value === 'medium') {
-            animateToSize('large')
+            if (canExpandToLarge.value) {
+                animateToSize('large')
+            } else {
+                // If can't expand to large, go back to small
+                animateToSize('small')
+            }
+        } else if (currentSize.value === 'large') {
+            // Collapse back to small
+            animateToSize('small')
         }
     }
 
@@ -241,7 +294,10 @@ export function useGestureHandling(params: UseGestureHandlingParams): UseGesture
             isActive: contentTouchIsActive,
             startY: contentTouchStartY
         },
-        handleHeaderPan,
+        handleHeaderTouchStart,
+        handleHeaderTouchMove,
+        handleHeaderTouchEnd,
+        handleHeaderMouseDown,
         handleHeaderClick,
         handleContentTouchStart,
         handleContentTouchMove,

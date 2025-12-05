@@ -1,43 +1,46 @@
 <template>
   <Teleport to="body">
-    <Transition name="bottom-sheet">
-      <div v-if="isVisible" class="bottom-sheet-wrapper" :style="{ zIndex: zIndex }">
+    <Transition name="bsw-bottom-sheet">
+      <div v-if="isVisible" class="bsw-bottom-sheet-wrapper" :style="{ zIndex: zIndex }">
         <!-- Backdrop Layer -->
         <div v-if="shouldShowBackdrop" 
-          class="bottom-sheet-backdrop" 
-          :class="{ 'bottom-sheet-backdrop--visible': showBackdrop }"
+          class="bsw-bottom-sheet-backdrop" 
+          :class="{ 'bsw-bottom-sheet-backdrop--visible': showBackdrop }"
           @click="handleBackdropClick"
           @touchstart="handleBackdropTouchStart"
           @touchmove="handleBackdropTouchMove"
           @touchend="handleBackdropTouchEnd"></div>
 
         <!-- Panel Principal -->
-        <div class="bottom-sheet-panel" :class="[
-          `bottom-sheet--${effectiveMode}`,
-          `bottom-sheet--${currentSize}`,
-          { 'bottom-sheet--dragging': isDragging }
+        <div class="bsw-bottom-sheet-panel" :class="[
+          `bsw-bottom-sheet--${effectiveMode}`,
+          `bsw-bottom-sheet--${currentSize}`,
+          { 'bsw-bottom-sheet--dragging': isDragging }
         ]" :style="panelStyles">
           <!-- Header con Handle -->
-          <div ref="headerRef" class="bottom-sheet-header" @click="handleHeaderClick"
-            v-touch-pan.vertical.prevent.mouse="handleHeaderPan">
-            <div class="bottom-sheet-handle" />
+          <div ref="headerRef" class="bsw-bottom-sheet-header" @click="handleHeaderClick"
+            @touchstart="handleHeaderTouchStart"
+            @touchmove="handleHeaderTouchMove"
+            @touchend="handleHeaderTouchEnd"
+            @mousedown="handleHeaderMouseDown">
+            <div class="bsw-bottom-sheet-handle" />
 
-            <div class="bottom-sheet-header-content">
+            <div class="bsw-bottom-sheet-header-content">
               <slot name="header">
-                <div class="bottom-sheet-title">{{ title }}</div>
+                <div class="bsw-bottom-sheet-title">{{ title }}</div>
               </slot>
 
-              <button v-if="showCloseButton" class="bottom-sheet-close-btn" @click.stop="handleClose">
+              <button v-if="showCloseButton" class="bsw-bottom-sheet-close-btn" @click.stop="handleClose">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
               </button>
             </div>
           </div>
 
           <!-- Content -->
-          <div ref="contentWrapperRef" class="bottom-sheet-content"
-            :class="{ 'bottom-sheet-content--scrollable': isScrollable }" @scroll="handleContentScroll"
+          <div ref="contentWrapperRef" class="bsw-bottom-sheet-content"
+            :class="{ 'bsw-bottom-sheet-content--scrollable': isScrollable }" @scroll="handleContentScroll"
             @touchstart="handleContentTouchStart" @touchmove="handleContentTouchMove" @touchend="handleContentTouchEnd">
-            <div ref="innerContentRef" class="bottom-sheet-content-inner">
+            <div ref="innerContentRef" class="bsw-bottom-sheet-content-inner">
               <component :is="contentComponent" v-bind="contentProps" v-if="contentComponent" />
               <slot v-else />
             </div>
@@ -165,7 +168,10 @@ const {
 const {
   isDragging: gestureIsDragging,
   gestureState,
-  handleHeaderPan,
+  handleHeaderTouchStart,
+  handleHeaderTouchMove,
+  handleHeaderTouchEnd,
+  handleHeaderMouseDown,
   handleHeaderClick,
   handleContentTouchStart,
   handleContentTouchMove,
@@ -316,7 +322,7 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
-.bottom-sheet-wrapper {
+.bsw-bottom-sheet-wrapper {
   position: fixed;
   top: 0;
   left: 0;
@@ -326,7 +332,7 @@ defineExpose({
   z-index: 9000;
 }
 
-.bottom-sheet-backdrop {
+.bsw-bottom-sheet-backdrop {
   position: absolute;
   top: 0;
   left: 0;
@@ -336,12 +342,12 @@ defineExpose({
   pointer-events: auto; // Catch clicks and gestures
   transition: background-color 0.3s ease;
   
-  &.bottom-sheet-backdrop--visible {
+  &.bsw-bottom-sheet-backdrop--visible {
     background: rgba(0, 0, 0, 0.1); // Semi-transparent when visible
   }
 }
 
-.bottom-sheet-panel {
+.bsw-bottom-sheet-panel {
   position: absolute;
   left: 0;
   right: 0;
@@ -358,12 +364,12 @@ defineExpose({
     transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: height, transform;
 
-  &.bottom-sheet--dragging {
+  &.bsw-bottom-sheet--dragging {
     transition: none;
   }
 }
 
-.bottom-sheet-header {
+.bsw-bottom-sheet-header {
   flex-shrink: 0;
   padding: 8px 16px 12px;
   cursor: pointer;
@@ -371,7 +377,7 @@ defineExpose({
   touch-action: none; // Important for dragging
 }
 
-.bottom-sheet-handle {
+.bsw-bottom-sheet-handle {
   width: 40px;
   height: 4px;
   background: rgba(0, 0, 0, 0.2);
@@ -379,20 +385,20 @@ defineExpose({
   margin: 0 auto 12px;
 }
 
-.bottom-sheet-header-content {
+.bsw-bottom-sheet-header-content {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
 
-.bottom-sheet-title {
+.bsw-bottom-sheet-title {
   font-size: 18px;
   font-weight: 600;
   color: #1a1a1a;
 }
 
-.bottom-sheet-close-btn {
+.bsw-bottom-sheet-close-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -403,33 +409,33 @@ defineExpose({
   cursor: pointer;
   color: #666;
 }
-.bottom-sheet-close-btn:hover {
+.bsw-bottom-sheet-close-btn:hover {
   background-color: rgba(0,0,0,0.05);
 }
 
-.bottom-sheet-content {
+.bsw-bottom-sheet-content {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: none; // Prevent pull-to-refresh on the content itself
 
-  &:not(.bottom-sheet-content--scrollable) {
+  &:not(.bsw-bottom-sheet-content--scrollable) {
     overflow-y: hidden;
   }
 }
 
 // Transition
-.bottom-sheet-enter-active,
-.bottom-sheet-leave-active {
-  .bottom-sheet-panel {
+.bsw-bottom-sheet-enter-active,
+.bsw-bottom-sheet-leave-active {
+  .bsw-bottom-sheet-panel {
     transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   }
 }
 
-.bottom-sheet-enter-from,
-.bottom-sheet-leave-to {
-  .bottom-sheet-panel {
+.bsw-bottom-sheet-enter-from,
+.bsw-bottom-sheet-leave-to {
+  .bsw-bottom-sheet-panel {
     transform: translateY(100%);
   }
 }
