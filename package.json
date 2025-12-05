@@ -1,6 +1,6 @@
 {
   "name": "@coderoycc/bottom-sheet-wrappers",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A flexible Vue 3 bottom sheet component with touch gesture support",
   "type": "module",
   "main": "./dist/bottom-sheet-wrappers.umd.js",
