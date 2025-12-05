@@ -39,7 +39,7 @@ const SNAP_THRESHOLD = 50
  * Composable for handling all drag/swipe gestures
  * 
  * Manages:
- * - Header pan gestures (Quasar touch-pan directive)
+ * - Header pan gestures
  * - Header click to expand
  * - Content touch gestures with scroll detection
  * - Mode-specific gesture behavior
