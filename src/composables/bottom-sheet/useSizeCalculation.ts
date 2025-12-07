@@ -52,9 +52,19 @@ export function useSizeCalculation(params: UseSizeCalculationParams): UseSizeCal
 
     const currentSize = ref<SheetSize>(props.initialSize || 'small')
 
+    // Helper to get dynamic viewport height (accounts for mobile browser bars)
+    const getViewportHeight = (): number => {
+        // Use visualViewport if available (more accurate on mobile)
+        if (window.visualViewport) {
+            return window.visualViewport.height
+        }
+        // Fallback to innerHeight
+        return window.innerHeight
+    }
+
     // Calculate sizes in pixels based on mode
     const sizesPx = computed<SizesPx>(() => {
-        const windowHeight = window.innerHeight
+        const windowHeight = getViewportHeight()
         const header = headerHeight.value
 
         const small = header
@@ -105,7 +115,7 @@ export function useSizeCalculation(params: UseSizeCalculationParams): UseSizeCal
             // Add a small buffer to account for any padding/margin in the content wrapper
             const CONTENT_PADDING_BUFFER = 16 // 16px buffer for potential padding/margin
             const totalContentHeight = headerHeight.value + contentHeight.value + CONTENT_PADDING_BUFFER
-            const windowHeight = window.innerHeight
+            const windowHeight = getViewportHeight()
 
             // Calculate max height in pixels to compare
             let maxHeightPx = windowHeight * 0.95 // Default 95%
@@ -136,7 +146,7 @@ export function useSizeCalculation(params: UseSizeCalculationParams): UseSizeCal
             // Add a small buffer to account for any padding/margin in the content wrapper
             const CONTENT_PADDING_BUFFER = 16 // 16px buffer for potential padding/margin
             const totalContentHeight = headerHeight.value + contentHeight.value + CONTENT_PADDING_BUFFER
-            const windowHeight = window.innerHeight
+            const windowHeight = getViewportHeight()
 
             // Calculate required height in dvh
             const requiredDvh = (totalContentHeight / windowHeight) * 100

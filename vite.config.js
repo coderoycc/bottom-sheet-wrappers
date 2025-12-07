@@ -19,6 +19,10 @@ export default defineConfig({
       rollupTypes: true
     })
   ].filter(Boolean),
+  server: {
+    host: '0.0.0.0',
+    port: 3000, 
+  },
 
   // Base path for GitHub Pages (replace 'bottom-sheet-wrappers' with your repo name)
   base: isDemoBuild ? '/bottom-sheet-wrappers/' : '/',
