@@ -3,25 +3,21 @@
     <Transition name="bsw-bottom-sheet">
       <div v-if="isVisible" class="bsw-bottom-sheet-wrapper" :style="{ zIndex: zIndex }">
         <!-- Backdrop Layer -->
-        <div v-if="shouldShowBackdrop" 
-          class="bsw-bottom-sheet-backdrop" 
-          :class="{ 'bsw-bottom-sheet-backdrop--visible': showBackdrop }"
-          @click="handleBackdropClick"
-          @touchstart="handleBackdropTouchStart"
-          @touchmove="handleBackdropTouchMove"
+        <div v-if="shouldShowBackdrop" class="bsw-bottom-sheet-backdrop" :class="{
+          'bsw-bottom-sheet-backdrop--visible': showBackdrop,
+          'bsw-bottom-sheet-backdrop--closing': isClosing
+        }" @click="handleBackdropClick" @touchstart="handleBackdropTouchStart" @touchmove="handleBackdropTouchMove"
           @touchend="handleBackdropTouchEnd"></div>
 
         <!-- Panel Principal -->
-        <div class="bsw-bottom-sheet-panel" :class="[
+        <div ref="panelRef" class="bsw-bottom-sheet-panel" :class="[
           `bsw-bottom-sheet--${effectiveMode}`,
           `bsw-bottom-sheet--${currentSize}`,
           { 'bsw-bottom-sheet--dragging': isDragging }
-        ]" :style="panelStyles">
+        ]" :style="panelStyles" @transitionend="handleTransitionEnd">
           <!-- Header con Handle -->
           <div ref="headerRef" class="bsw-bottom-sheet-header" @click="handleHeaderClick"
-            @touchstart="handleHeaderTouchStart"
-            @touchmove="handleHeaderTouchMove"
-            @touchend="handleHeaderTouchEnd"
+            @touchstart="handleHeaderTouchStart" @touchmove="handleHeaderTouchMove" @touchend="handleHeaderTouchEnd"
             @mousedown="handleHeaderMouseDown">
             <div class="bsw-bottom-sheet-handle" />
 
@@ -31,7 +27,11 @@
               </slot>
 
               <button v-if="showCloseButton" class="bsw-bottom-sheet-close-btn" @click.stop="handleClose">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
               </button>
             </div>
           </div>
@@ -72,7 +72,7 @@ const props = withDefaults(defineProps<BottomSheetProps>(), {
   title: '',
   mode: undefined,
   initialSize: 'small',
-  maxHeight: '95vh',
+  maxHeight: '95dvh',
   showCloseButton: true,
   showBackdrop: false,
   closeOnBackdrop: false,
@@ -95,6 +95,7 @@ const emit = defineEmits<{
 const headerRef = ref<HTMLElement | null>(null)
 const contentWrapperRef = ref<HTMLElement | null>(null)
 const innerContentRef = ref<HTMLElement | null>(null)
+const panelRef = ref<HTMLElement | null>(null)
 
 // ============================================================================
 // State
@@ -220,21 +221,38 @@ const contentProps = computed(() => props.props || {})
 
 const handleClose = (): void => {
   if (props.persistent) return
-  
+
   // Start the close animation
   isClosing.value = true
   emit('close')
-  
+
   // Wait for the animation to complete before actually hiding
+  // Reduced from 500ms to 300ms to match CSS transitions
   setTimeout(() => {
+    if (!isClosing.value) return // Prevent race condition if reopened quickly
+
     isVisible.value = false
     isClosing.value = false
     emit('update:modelValue', false)
     emit('closed')
-    
+
     // Unlock body scroll when closing
     unlockBodyScroll()
-  }, 500)
+  }, 300)
+}
+
+const handleTransitionEnd = (event: TransitionEvent): void => {
+  // Only handle transitions from the panel itself, not children
+  if (event.target !== panelRef.value) return
+
+  // If we're closing and the transform transition ended, finalize the close
+  if (isClosing.value && event.propertyName === 'transform') {
+    isVisible.value = false
+    isClosing.value = false
+    emit('update:modelValue', false)
+    emit('closed')
+    unlockBodyScroll()
+  }
 }
 
 const lockBodyScroll = (): void => {
@@ -252,13 +270,13 @@ const unlockBodyScroll = (): void => {
 const open = (): void => {
   isVisible.value = true
   currentSize.value = props.initialSize || 'small'
-  
+
   nextTick(() => {
     setupHeaderObserver()
     detectContentMode()
     setupContentObserver()
     emit('opened')
-    
+
     // Lock body scroll after everything is set up (except for dynamic mode at small size)
     const shouldLockScroll = !(effectiveMode.value === 'dynamic' && currentSize.value === 'small')
     if (shouldLockScroll) {
@@ -283,7 +301,7 @@ watch(() => props.modelValue, (newVal: boolean) => {
 // Watch for size changes in dynamic mode to lock/unlock body scroll
 watch(currentSize, (newSize) => {
   if (!isVisible.value) return
-  
+
   if (effectiveMode.value === 'dynamic') {
     if (newSize === 'small') {
       // Unlock scroll when collapsing to small in dynamic mode
@@ -341,9 +359,13 @@ defineExpose({
   background: transparent; // Invisible by default
   pointer-events: auto; // Catch clicks and gestures
   transition: background-color 0.3s ease;
-  
+
   &.bsw-bottom-sheet-backdrop--visible {
     background: rgba(0, 0, 0, 0.1); // Semi-transparent when visible
+  }
+
+  &.bsw-bottom-sheet-backdrop--closing {
+    pointer-events: none; // Don't capture events while closing
   }
 }
 
@@ -360,8 +382,8 @@ defineExpose({
   display: flex;
   flex-direction: column;
   pointer-events: auto; // Content is interactive
-  transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-    transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: height, transform;
 
   &.bsw-bottom-sheet--dragging {
@@ -409,8 +431,9 @@ defineExpose({
   cursor: pointer;
   color: #666;
 }
+
 .bsw-bottom-sheet-close-btn:hover {
-  background-color: rgba(0,0,0,0.05);
+  background-color: rgba(0, 0, 0, 0.05);
 }
 
 .bsw-bottom-sheet-content {
@@ -429,7 +452,7 @@ defineExpose({
 .bsw-bottom-sheet-enter-active,
 .bsw-bottom-sheet-leave-active {
   .bsw-bottom-sheet-panel {
-    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 }
 
