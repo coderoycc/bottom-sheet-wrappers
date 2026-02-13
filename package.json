@@ -1,6 +1,6 @@
 {
   "name": "@coderoycc/bottom-sheet-wrappers",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A flexible Vue 3 bottom sheet component with touch gesture support",
   "type": "module",
   "main": "./dist/bottom-sheet-wrappers.umd.js",
@@ -13,7 +13,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:demo": "DEMO_BUILD=true vite build",
+    "build:demo": "vite build --mode demo",
     "preview": "vite preview",
     "prepublishOnly": "npm run build"
   },
@@ -30,6 +30,10 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/coderoycc/bottom-sheet-wrappers"
+  },
+  "publishConfig": {
+    "access": "public",
+    "@coderoycc:registry": "https://npm.pkg.github.com"
   },
   "peerDependencies": {
     "vue": "^3.5.0"

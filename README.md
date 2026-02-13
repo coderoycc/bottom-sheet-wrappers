@@ -1,11 +1,11 @@
 # 📱 Bottom Sheet Wrappers
 
-A flexible and powerful Vue 3 bottom sheet component designed specifically for **mobile devices** with native-like touch gesture support and multiple display modes.
+A flexible and powerful Vue 3 bottom sheet component designed specifically for **mobile devices** with native-like touch gesture support and multiple display modes. 
 
 [![npm version](https://img.shields.io/npm/v/@coderoycc/bottom-sheet-wrappers.svg)](https://www.npmjs.com/package/@coderoycc/bottom-sheet-wrappers)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-> 📱 **Mobile-First Design**: Built from the ground up for mobile devices with smooth 60fps animations and native-like touch interactions.
+> 📱 **Mobile-First Design**: Built from the ground up for mobile devices with smooth 60fps animations and native-like touch interactions. <a href="https://coderoycc.github.io/bsw-demo/">Demo</a>
 
 ## ✨ Features
 
