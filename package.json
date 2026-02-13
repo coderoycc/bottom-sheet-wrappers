@@ -33,7 +33,7 @@
   },
   "publishConfig": {
     "access": "public",
-    "@coderoycc:registry": "https://npm.pkg.github.com"
+    "registry": "https://registry.npmjs.org/"
   },
   "peerDependencies": {
     "vue": "^3.5.0"
