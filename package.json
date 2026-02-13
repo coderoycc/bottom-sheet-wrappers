@@ -29,7 +29,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/coderoycc/bottom-sheet-wrappers"
+    "url": "git+https://github.com/coderoycc/bottom-sheet-wrappers.git"
   },
   "publishConfig": {
     "access": "public",
