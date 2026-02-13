@@ -9,25 +9,18 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22.x"
-          registry-url: "https://registry.npmjs.org"
-
-      - name: Force npm registry
-        run: |
-          echo "@coderoycc:registry=https://registry.npmjs.org" >> ~/.npmrc
 
       - run: npm ci
       - run: npm run build
 
       # Publish to NPM
-      - run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - run: npm publish --provenance --access public
 
       # Publish to GitHub Packages
       - name: Setup .npmrc for GitHub Packages
