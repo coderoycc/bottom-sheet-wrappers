@@ -1,0 +1,135 @@
+.bsw-bottom-sheet-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.bsw-bottom-sheet-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: transparent;
+  pointer-events: auto;
+  transition: background-color 0.3s ease;
+
+  &.bsw-bottom-sheet-backdrop--visible {
+    background: rgba(0, 0, 0, 0.1);
+  }
+
+  &.bsw-bottom-sheet-backdrop--closing {
+    pointer-events: none;
+  }
+}
+
+.bsw-bottom-sheet-panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-width: 768px;
+  margin: 0 auto;
+  padding: 2px 5px;
+
+  /* Use variables with defaults, but DO NOT define them locally to allow inheritance */
+  background: var(--bsw-background, #ffffff);
+  border-radius: var(--bsw-border-radius, 16px) var(--bsw-border-radius, 16px) 0 0;
+  box-shadow: var(--bsw-box-shadow, 0 -2px 20px rgba(0, 0, 0, 0.15));
+
+  display: flex;
+  flex-direction: column;
+  pointer-events: auto;
+  transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: height, transform;
+
+  &.bsw-bottom-sheet--dragging {
+    transition: none;
+  }
+}
+
+.bsw-bottom-sheet-header {
+  flex-shrink: 0;
+  padding: 8px 8px 12px 8px;
+  user-select: none;
+  touch-action: none;
+  position: relative;
+}
+
+.bsw-bottom-sheet-handle {
+  width: var(--bsw-handle-width, 40px);
+  height: var(--bsw-handle-height, 4px);
+  background: var(--bsw-handle-background, rgba(0, 0, 0, 0.2));
+  border-radius: var(--bsw-handle-border-radius, 2px);
+  margin: 0 auto 12px;
+}
+
+.bsw-bottom-sheet-close-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 10;
+  padding: 0;
+  transition: opacity 0.2s;
+  opacity: 0.6;
+}
+
+.bsw-bottom-sheet-close-btn:hover {
+  opacity: 1;
+}
+
+.bsw-bottom-sheet-close-btn svg {
+  width: 20px;
+  height: 20px;
+  color: var(--bsw-close-btn-color, rgba(0, 0, 0, 0.5));
+  transition: color 0.2s;
+}
+
+.bsw-bottom-sheet-close-btn:hover svg {
+  color: var(--bsw-close-btn-hover-color, rgba(0, 0, 0, 0.8));
+}
+
+.bsw-bottom-sheet-header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bsw-bottom-sheet-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: none;
+
+  &:not(.bsw-bottom-sheet-content--scrollable) {
+    overflow-y: hidden;
+  }
+}
+
+.bsw-bottom-sheet-enter-active,
+.bsw-bottom-sheet-leave-active {
+  .bsw-bottom-sheet-panel {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+.bsw-bottom-sheet-enter-from,
+.bsw-bottom-sheet-leave-to {
+  .bsw-bottom-sheet-panel {
+    transform: translateY(100%);
+  }
+}

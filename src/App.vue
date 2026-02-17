@@ -1,30 +1,93 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, watch } from "vue";
 import BottomSheet from "./components/BottomSheet.vue";
+import { useBottomSheetStack } from "./composables/useBottomSheetStack";
+import { useTheme, type Theme } from "./composables/useTheme";
+import FixedBottomSheet from "./components/FixedBottomSheet.vue";
 
 const isOpen = ref(false);
+const openFixed = ref(false);
+const isCustomOpen = ref(false);
 const mode = ref<"dynamic" | "auto-fit" | "fixed">("fixed");
 const title = ref("Dynamic");
+
+// Sistema de temas global
+const { currentTheme, setTheme } = useTheme();
+
+// Simulación integración Quasar (o cualquier framework)
+const isQuasarDark = ref(false);
+const toggleQuasarDark = () => {
+  isQuasarDark.value = !isQuasarDark.value;
+  // Simula lo que hace Quasar: poner clase en body
+  document.body.classList.toggle('body--dark', isQuasarDark.value);
+};
+
+// Sistema de apilamiento automático
+const { zIndex: zIndex1, register: register1 } = useBottomSheetStack();
+const { zIndex: zIndex2, register: register2 } = useBottomSheetStack();
+
+// Registrar z-index cuando se abre cada sheet
+watch(isOpen, (newVal) => {
+  if (newVal) register1();
+});
+
+watch(isCustomOpen, (newVal) => {
+  if (newVal) register2();
+});
+const close = () => {
+  isOpen.value = false
+}
 </script>
 
 <template>
   <div class="app-container">
-    <h1>Bottom Sheet Example</h1>
-    <p>
-      This is a simple example to test the library component. Mode:
-      <b>{{ mode }}</b>
-    </p>
-    <button @click="isOpen = true">Open Bottom Sheet</button>
+    <h1>Bottom Sheet Global Themes</h1>
 
-    <BottomSheet
-      v-model="isOpen"
-      :mode="mode"
-      :title="`${title} Example`"
-      show-close-button
-      :show-backdrop="mode === 'dynamic' || mode === 'auto-fit'"
-      :close-on-backdrop="mode === 'auto-fit'"
-      initial-size="small"
-    >
+    <div class="controls-wrapper">
+      <!-- Sección de Simulación de Framework -->
+      <div class="control-group"
+        style="padding-bottom: 16px; margin-bottom: 16px; border-bottom: 1px solid rgba(0,0,0,0.1); width: 100%;">
+        <label>Framework:</label>
+        <button @click="toggleQuasarDark" :style="{
+          background: isQuasarDark ? '#333' : '#e0e0e0',
+          color: isQuasarDark ? 'white' : 'black',
+          display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px'
+        }">
+          <span>{{ isQuasarDark ? '🌙' : '☀️' }}</span>
+          <span>{{ isQuasarDark ? 'Quasar Dark' : 'Quasar Light' }}</span>
+        </button>
+      </div>
+
+      <div class="control-group">
+        <label>Mode:</label>
+        <select v-model="mode">
+          <option value="dynamic">Dynamic</option>
+          <option value="auto-fit">Auto-Fit</option>
+          <option value="fixed">Fixed</option>
+        </select>
+      </div>
+
+      <button @click="close">HOla</button>
+      <div class="control-group">
+        <label>Global Theme:</label>
+        <select :value="currentTheme" @change="e => setTheme((e.target as HTMLSelectElement).value as Theme)">
+          <option value="blue">Blue (Default)</option>
+          <option value="green">Light Green</option>
+          <option value="gray">Professional Gray</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="buttons-container">
+      <button @click="isOpen = true">Open Default Sheet</button>
+      <button @click="isCustomOpen = true" class="custom-button">Open Custom Sheet</button>
+      <button @click="openFixed = true" class="custom-button">Open fixed</button>
+    </div>
+
+    <!-- BottomSheet original -->
+    <BottomSheet v-model="isOpen" :mode="mode" :title="`${title} Example`" show-close-button
+      :show-backdrop="mode === 'dynamic' || mode === 'auto-fit'" :close-on-backdrop="mode === 'auto-fit'"
+      initial-size="medium" :z-index="9000">
       <div class="sheet-content">
         <div class="content-section">
           <h4>
@@ -35,227 +98,360 @@ const title = ref("Dynamic");
             <li>✅ Swipe up/down to resize between small, medium, and large</li>
             <li>✅ Click header to expand to next size</li>
             <li>✅ Backdrop collapses to small size when clicked</li>
-            <li>
-              ✅ Smart expansion (won't expand to large if content fits in
-              medium)
-            </li>
-            <li>✅ Smooth animations and transitions</li>
+            <li>✅ Smart expansion logic</li>
+            <li>✅ Smooth animations</li>
           </ul>
 
           <ul v-else-if="mode === 'auto-fit'" class="feature-list">
             <li>✅ Height automatically adjusts to content</li>
             <li>✅ Swipe down to close</li>
-            <li>✅ Scrolls when content exceeds max-height</li>
-            <li>✅ Click backdrop to close (when enabled)</li>
             <li>✅ Perfect for dynamic content</li>
           </ul>
 
           <ul v-else class="feature-list">
-            <li>✅ Fixed height at 45% screen height (medium)</li>
+            <li>✅ Fixed height at 45% screen height</li>
             <li>✅ Swipe down to close</li>
             <li>✅ No resizing gestures</li>
-            <li>✅ No backdrop interference</li>
-            <li>✅ Content scrolls when overflowing</li>
           </ul>
-        </div>
-
-        <div class="content-section">
-          <h4>Sample Content</h4>
-          <div class="sample-items">
-            <div v-for="i in 8" :key="i" class="sample-item">
-              <div class="item-icon">📄</div>
-              <div class="item-content">
-                <div class="item-title">Item {{ i }}</div>
-                <div class="item-subtitle">
-                  Sample description for item {{ i }}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="content-section">
-          <h4>Code Example</h4>
-          <pre class="code-block"><code>&lt;BottomSheet 
-  v-model="isOpen"
-  mode="{{ mode }}"
-  title="My Sheet"
-  {{ mode === 'dynamic' ? 'initial-size="medium"' : '' }}
-  {{ mode === 'auto-fit' ? ':close-on-backdrop="true"' : '' }}
-&gt;
-  &lt;p&gt;Your content here&lt;/p&gt;
-&lt;/BottomSheet&gt;</code></pre>
         </div>
       </div>
     </BottomSheet>
+
+    <!-- BottomSheet con estilos personalizados -->
+    <BottomSheet v-model="isCustomOpen" mode="fixed" initial-size="medium" :z-index="9000">
+      <template #header>
+        <div class="custom-header">
+          <span class="custom-icon">🎨</span>
+          <h2 class="custom-title">Custom Sheet</h2>
+        </div>
+      </template>
+
+      <div class="custom-content">
+        <h3>Inherits Global Theme</h3>
+        <p>This sheet overrides some styles but still respects the global theme foundation if configured to do so.</p>
+
+        <div class="custom-actions">
+          <button class="action-btn primary">Main Action</button>
+          <button class="action-btn secondary">Cancel</button>
+        </div>
+      </div>
+    </BottomSheet>
+
+    <fixed-bottom-sheet v-model="openFixed" title="Un nuevo titulo simple fixed">
+      <div class="content">
+        <ul>
+          <!-- 15 elementos -->
+          <li v-for="i in 185" :key="i">Item {{ i }}</li>
+        </ul>
+      </div>
+    </fixed-bottom-sheet>
   </div>
 </template>
 
 <style>
+
+/* Theme: Blue (Default) */
+.theme-blue {
+  --bsw-background: #ffffff;
+  --bsw-border-radius: 2px;
+  --bsw-box-shadow: 0 -4px 30px rgba(30, 58, 138, 0.15);
+  --bsw-handle-background: rgba(30, 64, 175, 0.2);
+  --bsw-handle-width: 40px;
+  --bsw-handle-height: 4px;
+  --bsw-handle-border-radius: 2px;
+  --bsw-close-btn-color: rgba(30, 64, 175, 0.6);
+  --bsw-close-btn-hover-color: #1e3a8a;
+
+  /* App Background for context */
+  background-color: #eff6ff;
+  color: #1e3a8a;
+}
+
+/* Theme: Green (Light Nature) */
+.theme-green {
+  --bsw-background: #f0fdf4;
+  --bsw-border-radius: 2px;
+  --bsw-box-shadow: 0 -4px 30px rgba(21, 128, 61, 0.15);
+  --bsw-handle-background: rgba(21, 128, 61, 0.3);
+  --bsw-handle-width: 60px;
+  --bsw-handle-height: 5px;
+  --bsw-handle-border-radius: 4px;
+  --bsw-close-btn-color: rgba(22, 101, 52, 0.7);
+  --bsw-close-btn-hover-color: #14532d;
+
+  /* App Background for context */
+  background-color: #f0fdf4;
+  color: #14532d;
+}
+
+/* Theme: Gray (Professional) */
+.theme-gray {
+  --bsw-background: #ffffff;
+  --bsw-border-radius: 8px;
+  /* Sharp professional look */
+  --bsw-box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
+  --bsw-handle-background: rgba(75, 85, 99, 0.3);
+  --bsw-handle-width: 32px;
+  --bsw-handle-height: 4px;
+  --bsw-handle-border-radius: 2px;
+  --bsw-close-btn-color: #4b5563;
+  --bsw-close-btn-hover-color: #111827;
+
+  /* App Background for context */
+  background-color: #f9fafb;
+  color: #111827;
+}
+
+/* ============================================================================
+   App Layout & Controls
+   ============================================================================ */
 .app-container {
-  font-family: sans-serif;
-  padding: 20px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  padding: 40px 20px;
   max-width: 600px;
   margin: 0 auto;
   text-align: center;
+  transition: color 0.3s;
+}
+
+.controls-wrapper {
+  background: rgba(0, 0, 0, 0.05);
+  padding: 20px;
+  border-radius: 12px;
+  margin: 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.control-group {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.control-group label {
+  font-weight: 600;
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+select {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: white;
+  font-size: 14px;
+  cursor: pointer;
+  min-width: 150px;
+}
+
+.buttons-container {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 24px;
 }
 
 button {
-  padding: 10px 20px;
-  font-size: 16px;
-  cursor: pointer;
-  background-color: #4caf50;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  margin-top: 20px;
-}
-
-button:hover {
-  background-color: #45a049;
-}
-.demo-card {
-  background: white;
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
-  border: 1px solid #e5e7eb;
-}
-
-.demo-card:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-  transform: translateY(-2px);
-}
-
-.demo-card-header {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
-.demo-icon {
-  font-size: 48px;
-  line-height: 1;
-}
-
-.demo-info {
-  flex: 1;
-}
-
-.demo-title {
-  font-size: 20px;
-  font-weight: 600;
-  color: #111827;
-  margin-bottom: 8px;
-}
-
-.demo-description {
-  font-size: 14px;
-  color: #6b7280;
-  line-height: 1.5;
-}
-
-.demo-button {
-  width: 100%;
   padding: 12px 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
   border: none;
   border-radius: 8px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
+  transition: transform 0.1s, opacity 0.2s;
 }
 
-.demo-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+button:active {
+  transform: translateY(1px);
 }
 
-.demo-button:active {
-  transform: translateY(0);
+.primary-btn {
+  background: currentColor;
+  color: white;
+  /* Doesnt work directly with currentColor bg, but implies logic */
+  opacity: 0.9;
+}
+
+/* Helper to invert color for primary button text based on theme */
+.theme-blue .primary-btn {
+  background: #1e3a8a;
+  color: white;
+}
+
+.theme-green .primary-btn {
+  background: #15803d;
+  color: white;
+}
+
+.theme-gray .primary-btn {
+  background: #111827;
+  color: white;
+}
+
+.secondary-btn {
+  background: rgba(0, 0, 0, 0.05);
+  color: currentColor;
 }
 
 .sheet-content {
-  padding: 0 8px 16px;
+  padding: 0 16px 32px;
 }
 
 .content-section {
   margin-bottom: 24px;
+  text-align: left;
 }
 
 .content-section h4 {
-  font-size: 16px;
-  font-weight: 600;
-  color: #111827;
-  margin-bottom: 12px;
+  margin: 0 0 12px;
+  opacity: 0.8;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  padding-bottom: 8px;
 }
 
 .feature-list {
   list-style: none;
   padding: 0;
-}
-
-.feature-list li {
-  padding: 8px 0;
-  color: #374151;
-  font-size: 14px;
-  line-height: 1.6;
-}
-
-.sample-items {
+  margin: 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.sample-item {
+.feature-list li {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+/* Custom Sheet Styles */
+.custom-header {
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: -8px -8px 0;
+  border-radius: 16px 16px 0 0;
+  background: rgba(0, 0, 0, 0.03);
+  /* Subtle bg to distinguish header */
+  width: 100%;
+}
+
+.custom-title {
+  margin: 0;
+  font-size: 18px;
+}
+
+.custom-actions {
   display: flex;
   gap: 12px;
-  padding: 12px;
-  background: #f9fafb;
-  border-radius: 8px;
-  transition: background 0.2s;
+  margin-top: 24px;
 }
 
-.sample-item:hover {
-  background: #f3f4f6;
-}
-
-.item-icon {
-  font-size: 24px;
-}
-
-.item-content {
+.action-btn {
   flex: 1;
-}
-
-.item-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #111827;
-  margin-bottom: 4px;
-}
-
-.item-subtitle {
-  font-size: 12px;
-  color: #6b7280;
-}
-
-.code-block {
-  background: #1f2937;
-  color: #e5e7eb;
-  padding: 16px;
+  padding: 12px;
   border-radius: 8px;
-  font-size: 13px;
-  line-height: 1.6;
-  overflow-x: auto;
-  font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
 }
 
-.code-block code {
-  color: #e5e7eb;
+.action-btn.primary {
+  background: red;
+  /* Overridden below */
+}
+
+/* Theme-aware inner styles */
+.theme-blue .action-btn.primary {
+  background: #1e3a8a;
+  color: white;
+}
+
+.theme-green .action-btn.primary {
+  background: #15803d;
+  color: white;
+}
+
+.theme-gray .action-btn.primary {
+  background: #111827;
+  color: white;
+}
+
+/* ============================================================================
+   Custom Sheet Overrides (Demonstrates local override of global theme)
+   ============================================================================ */
+.custom-sheet .bsw-bottom-sheet-panel {
+  --bsw-background: linear-gradient(135deg, #fefcd0 0%, #fef3c7 100%);
+  --bsw-border-radius: 24px;
+  --bsw-box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.1);
+  /* Note: It will still inherit other variables like handle size from global theme */
+}
+
+/* Custom header specific override */
+.custom-header {
+  background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+  color: white;
+}
+
+/* ============================================================================
+   QUASAR SIMULATION: Dark Mode Bridge
+   ============================================================================ */
+/* 
+   Esto simula lo que harías en tu app.scss global.
+   Cuando Quasar agrega clase "body--dark", nosotros re-mapeamos las variables.
+*/
+body.body--dark {
+  /* Fondo oscuro (Simulando --q-dark-page) */
+  --bsw-background: #121212;
+
+  /* Handle más claro para contraste */
+  --bsw-handle-background: rgba(255, 255, 255, 0.2);
+
+  /* Textos e iconos */
+  --bsw-close-btn-color: rgba(255, 255, 255, 0.7);
+  --bsw-close-btn-hover-color: #ffffff;
+
+  /* 
+     TRUCO PRO PARA DARK MODE:
+     Las sombras negras no se ven en fondos negros.
+     Solución: Agregamos un borde sutil blanco (1px) usando box-shadow combinado.
+     1. Sombra negra profunda: 0 -4px 30px rgba(0,0,0,0.5)
+     2. Borde sutil (highlight): 0 1px 0 0 rgba(255,255,255,0.1) inset (o spread positivo)
+  */
+  --bsw-box-shadow:
+    0 -4px 30px rgba(0, 0, 0, 0.6),
+    /* Sombra difusa */
+    0 1px 0 0 rgba(255, 255, 255, 0.1) inset;
+  /* Borde interior sutil (Top Highlight) */
+
+  /* App Context Styles (Solo para el demo) */
+  background-color: #121212 !important;
+  /* Force override themes */
+  color: #ffffff !important;
+}
+
+/* Ajustes visuales de demo para el contenido en modo oscuro */
+body.body--dark .sheet-content,
+body.body--dark .content-section,
+body.body--dark .feature-list li,
+body.body--dark h4 {
+  color: #e0e0e0;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+body.body--dark .sample-item {
+  background: #1e1e1e;
+}
+
+body.body--dark .sample-item:hover {
+  background: #2d2d2d;
+}
+
+body.body--dark .item-title {
+  color: #fff;
+}
+
+body.body--dark .item-subtitle {
+  color: #aaa;
 }
 </style>
