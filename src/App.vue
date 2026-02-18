@@ -4,9 +4,11 @@ import BottomSheet from "./components/BottomSheet.vue";
 import { useBottomSheetStack } from "./composables/useBottomSheetStack";
 import { useTheme, type Theme } from "./composables/useTheme";
 import FixedBottomSheet from "./components/FixedBottomSheet.vue";
+import DynamicBottomSheet from "./components/DynamicBottomSheet.vue";
 
 const isOpen = ref(false);
 const openFixed = ref(false);
+const openDynamic = ref(false);
 const isCustomOpen = ref(false);
 const mode = ref<"dynamic" | "auto-fit" | "fixed">("fixed");
 const title = ref("Dynamic");
@@ -36,6 +38,9 @@ watch(isCustomOpen, (newVal) => {
 });
 const close = () => {
   isOpen.value = false
+}
+const onClose = () => {
+  console.log('Quiere cerrar')
 }
 </script>
 
@@ -81,7 +86,10 @@ const close = () => {
     <div class="buttons-container">
       <button @click="isOpen = true">Open Default Sheet</button>
       <button @click="isCustomOpen = true" class="custom-button">Open Custom Sheet</button>
+    </div>
+    <div class="buttons-container">
       <button @click="openFixed = true" class="custom-button">Open fixed</button>
+      <button @click="openDynamic = true" class="custom-button">Open dynamic</button>
     </div>
 
     <!-- BottomSheet original -->
@@ -137,19 +145,118 @@ const close = () => {
       </div>
     </BottomSheet>
 
-    <fixed-bottom-sheet v-model="openFixed" title="Un nuevo titulo simple fixed">
-      <div class="content">
+    <fixed-bottom-sheet v-model="openFixed" title="Un nuevo titulo simple fixed" @before-close="onClose" show-backdrop :height="500">
+      <div class="content" style="border: 1px solid red">
         <ul>
-          <!-- 15 elementos -->
-          <li v-for="i in 185" :key="i">Item {{ i }}</li>
+          <li v-for="i in 15" :key="i">Item {{ i }}</li>
         </ul>
+        <div><button>Aceptar</button></div>
+        <div>Lorem ipsum dolor sit amet consectetur adipisicing elit. Quasi commodi earum maiores et veniam nesciunt quam? Incidunt, rem quia, hic minus corrupti exercitationem magni perferendis in autem beatae eligendi laboriosam.</div>
+        <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Quasi commodi earum maiores et veniam nesciunt quam? Incidunt, rem quia, hic minus corrupti exercitationem magni perferendis in autem beatae eligendi laboriosam.</p>
+        <div><button @click="openFixed = false">cerrar</button></div>
       </div>
     </fixed-bottom-sheet>
+    <dynamic-bottom-sheet v-model="openDynamic" title="Un nuevo titulo simple dynamic">
+      <div>
+        <ul>
+          <ol v-for="i in 15" :key="i">Item {{ i }}</ol>
+        </ul>
+      </div>
+      <div class="">
+        <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Excepturi rem, nam nostrum doloremque voluptatum at facere quisquam porro laudantium ea accusamus, nemo cum maxime deleniti numquam in consectetur beatae ut.</p>
+        <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Excepturi rem, nam nostrum doloremque voluptatum at facere quisquam porro laudantium ea accusamus, nemo cum maxime deleniti numquam in consectetur beatae ut.</p>
+        <div class="action-buttons">
+              <button class="btn-action primary">
+                <span class="icon">↱</span> Indicaciones
+              </button>
+              <button class="btn-icon">
+                <span class="icon">📞</span> Llamar
+              </button>
+              <button class="btn-icon">
+                <span class="icon">🏢</span> Directorio
+              </button>
+            </div>
+      </div>
+      <template #collapsed-content>
+        <div class="bs-header">
+          <!-- <div class="header-content"> -->
+            
+            <div class="action-buttons">
+              <button class="btn-action primary">
+                <span class="icon">↱</span> Indicaciones
+              </button>
+              <button class="btn-icon">
+                <span class="icon">📞</span> Llamar
+              </button>
+              <button class="btn-icon">
+                <span class="icon">🏢</span> Directorio
+              </button>
+            </div>
+          <!-- </div> -->
+        </div>
+      </template>
+    </dynamic-bottom-sheet>
   </div>
 </template>
 
 <style>
+.bs-header {
+  background-color: #0d2129; /* Color oscuro de la captura */
+  color: white;
+  padding: 8px 16px 16px 16px;
+  border-radius: 24px 24px 0 0;
+  font-family: 'Roboto', sans-serif;
+}
 
+.drag-handle {
+  width: 40px;
+  height: 4px;
+  background-color: #5f6368;
+  border-radius: 2px;
+  margin: 0 auto 12px auto;
+}
+
+.place-title {
+  font-size: 22px;
+  font-weight: 400;
+  margin-bottom: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto; /* Para scroll horizontal si hay muchos botones */
+}
+
+.btn-action {
+  background-color: #8ab4f8; /* Azul claro Google */
+  color: #202124;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-icon {
+  background-color: #17313a;
+  color: #8ab4f8;
+  border: 1px solid #3c4043;
+  padding: 10px 16px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.xborde {
+  border: 1px solid red;
+}
 /* Theme: Blue (Default) */
 .theme-blue {
   --bsw-background: #ffffff;

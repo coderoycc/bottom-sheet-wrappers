@@ -54,11 +54,13 @@
 
 .bsw-bottom-sheet-header {
   flex-shrink: 0;
-  padding: 8px 8px 12px 8px;
+  padding: 8px 8px 10px 8px;
   user-select: none;
   touch-action: none;
   position: relative;
 }
+
+
 
 .bsw-bottom-sheet-handle {
   width: var(--bsw-handle-width, 40px);

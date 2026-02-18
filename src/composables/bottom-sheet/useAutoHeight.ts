@@ -73,7 +73,7 @@ export function useAutoHeight(
 		}
 
 		// Calculate required height
-		const requiredHeight = headerHeight.value + contentHeight.value;
+		const requiredHeight = headerHeight.value + contentHeight.value + 8;
 		const totalHeight = Math.min(requiredHeight, maxHeightPx.value);
 
 		return `${totalHeight}px`;

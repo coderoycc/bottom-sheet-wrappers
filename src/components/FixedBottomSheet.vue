@@ -172,7 +172,6 @@ const panelStyles = computed<Record<string, string>>(() => {
 
 const closeSheet = (): void => {
   emit('before-close')
-  isClosing.value = true
 
   setTimeout(() => {
     if (!isClosing.value) return
@@ -255,21 +254,13 @@ const open = (): void => {
 }
 
 const close = (): void => {
-  closeSheet()
+  isClosing.value = true
 }
 
-// ============================================================================
-// Watchers
-// ============================================================================
-
 watch(() => props.modelValue, (newVal: boolean) => {
-  if (newVal) open()
+  if (newVal) open() // abrir modales
   else close()
 })
-
-// ============================================================================
-// Lifecycle
-// ============================================================================
 
 onMounted(() => {
   if (props.modelValue) open()
@@ -281,11 +272,6 @@ onBeforeUnmount(() => {
   if (headerObserver) headerObserver.disconnect()
   cleanupAutoHeight()
   unlockBodyScroll()
-})
-
-defineExpose({
-  open,
-  close
 })
 </script>
 
