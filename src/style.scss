@@ -68,6 +68,7 @@
   background: var(--bsw-handle-background, rgba(0, 0, 0, 0.2));
   border-radius: var(--bsw-handle-border-radius, 2px);
   margin: 0 auto 12px;
+  cursor: pointer;
 }
 
 .bsw-bottom-sheet-close-btn {

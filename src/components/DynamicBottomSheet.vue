@@ -18,13 +18,13 @@
           <div ref="headerRef" class="bsw-bottom-sheet-header" @click="handleHeaderClick"
             @touchstart="handleHeaderTouchStart" @touchmove="handleHeaderTouchMove" @touchend="handleHeaderTouchEnd"
             @mousedown="handleHeaderMouseDown"
-            v-show="hasCollapsedSlot && !showCollapsedContent"
-            >
+            v-show="!showCollapsedContent"
+          >
             <!-- Handle -->
             <div class="bsw-bottom-sheet-handle" />
 
             <!-- Close Button (solo si no hay header personalizado) -->
-            <button v-if="showCloseButton && !$slots.header" class="bsw-bottom-sheet-close-btn"
+            <button v-if="showCloseButton && !hasHeaderSlot" class="bsw-bottom-sheet-close-btn"
               @click.stop="handleClose">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -140,7 +140,6 @@ const slots = useSlots()
 // ============================================================================
 
 const headerRef = ref<HTMLElement | null>(null)
-const contentWrapperRef = ref<HTMLElement | null>(null)
 const innerContentRef = ref<HTMLElement | null>(null)
 const collapsedContentRef = ref<HTMLElement | null>(null)
 const panelRef = ref<HTMLElement | null>(null)
@@ -159,19 +158,10 @@ const collapsedContentHeight = ref(0)
 
 // Whether the collapsed-content slot is provided
 const hasCollapsedSlot = computed(() => !!slots['collapsed-content'])
-
-// ============================================================================
-// Content Scroll
-// ============================================================================
+const hasHeaderSlot = computed(() => !!slots['header'])
 
 const { contentScrollTop, handleContentScroll } = useContentScroll()
 
-// ============================================================================
-// Size Calculation
-// ============================================================================
-
-// We need a temporary isDragging ref for the size calculation composable.
-// It will be replaced by the real one from gestures after setup.
 const tempIsDragging = ref(false)
 const tempGestureState = {
   startY: ref(0),
@@ -220,6 +210,11 @@ const {
   contentScrollTop,
   animateToSize,
   handleClose
+});
+
+
+watch(() => sizesPx.value, (newSizes) => {
+  console.log("datos pixeles", newSizes)
 })
 
 watch(isDragging, (v) => { tempIsDragging.value = v })

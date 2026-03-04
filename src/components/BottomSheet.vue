@@ -102,22 +102,12 @@ const emit = defineEmits<{
 // ============================================================================
 
 const headerRef = ref<HTMLElement | null>(null)
-const contentWrapperRef = ref<HTMLElement | null>(null)
 const innerContentRef = ref<HTMLElement | null>(null)
 const panelRef = ref<HTMLElement | null>(null)
-
-// ============================================================================
-// State
-// ============================================================================
 
 const isVisible = ref(props.modelValue)
 const isClosing = ref(false)
 
-// ============================================================================
-// Composables
-// ============================================================================
-
-// Resize Observers - tracks header and content dimensions
 const {
   headerHeight,
   contentHeight,
@@ -129,7 +119,6 @@ const {
   onContentResize: undefined // Will be set after mode detection is available
 })
 
-// Mode Detection - determines effective mode (dynamic/auto-fit/fixed)
 const {
   effectiveMode,
   detectContentMode

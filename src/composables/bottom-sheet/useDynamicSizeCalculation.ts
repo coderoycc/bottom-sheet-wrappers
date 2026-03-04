@@ -81,7 +81,8 @@ export function useDynamicSizeCalculation(
 		if (isNaN(value)) return 0;
 
 		if (size.includes("dvh") || size.includes("vh") || size.includes("%")) {
-			return (value / 100) * getViewportHeight();
+			const valor = (value / 100) * getViewportHeight();
+			return parseInt(valor.toFixed(0));
 		}
 		if (size.includes("px")) {
 			return value;
@@ -101,6 +102,7 @@ export function useDynamicSizeCalculation(
 
 		// Half breakpoint from props, but capped to content if content is smaller
 		const halfPx = parseSizeToPx(props.half || "45dvh");
+		console.log("datos a mostrar en tamaño medio", halfPx)
 		const contentBasedHalf = header + content + 18; // 8px buffer
 		const medium =
 			content > 0
@@ -109,6 +111,7 @@ export function useDynamicSizeCalculation(
 
 		// Full breakpoint from props, but capped to content if content is smaller
 		const fullPx = parseSizeToPx(props.full || "95dvh");
+		console.log("datos a mostrar en tamaño full", fullPx)	
 		const contentBasedFull = header + content + 18;
 		const large =
 			content > 0
