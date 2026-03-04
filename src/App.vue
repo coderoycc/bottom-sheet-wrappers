@@ -1,261 +1,340 @@
 <script setup lang="ts">
-import { ref } from "vue";
-import BottomSheet from "./components/BottomSheet.vue";
+import { ref, watch, computed } from "vue";
+import DynamicBottomSheet from "./components/DynamicBottomSheet.vue";
+import FixedBottomSheet from "./components/FixedBottomSheet.vue";
+import { useBottomSheetStack } from "./composables/useBottomSheetStack";
 
+type UseCaseKey = "basic" | "collapsed" | "backdrop" | "custom";
+type FixedCaseKey = "basic" | "customHeight" | "backdrop" | "customHeader";
+
+const activeCase = ref<UseCaseKey>("basic");
 const isOpen = ref(false);
-const mode = ref<"dynamic" | "auto-fit" | "fixed">("fixed");
-const title = ref("Dynamic");
+
+const activeFixedCase = ref<FixedCaseKey>("basic");
+const isFixedOpen = ref(false);
+
+const { zIndex: zIndexDefault, register: registerDefault } = useBottomSheetStack();
+const { zIndex: zIndexCollapsed, register: registerCollapsed } = useBottomSheetStack();
+const { zIndex: zIndexBackdrop, register: registerBackdrop } = useBottomSheetStack();
+const { zIndex: zIndexCustomSizes, register: registerCustomSizes } = useBottomSheetStack();
+
+const { zIndex: zIndexFixedDefault, register: registerFixedDefault } = useBottomSheetStack();
+const { zIndex: zIndexFixedCustomHeight, register: registerFixedCustomHeight } = useBottomSheetStack();
+const { zIndex: zIndexFixedBackdrop, register: registerFixedBackdrop } = useBottomSheetStack();
+const { zIndex: zIndexFixedHeader, register: registerFixedHeader } = useBottomSheetStack();
+
+const openSelectedCase = () => {
+  isOpen.value = true;
+};
+
+const closeCase = () => {
+  isOpen.value = false;
+};
+
+const openFixedSelectedCase = () => {
+  isFixedOpen.value = true;
+};
+
+const closeFixedCase = () => {
+  isFixedOpen.value = false;
+};
+
+const caseModel = (key: UseCaseKey) =>
+  computed({
+    get: () => isOpen.value && activeCase.value === key,
+    set: (value) => {
+      if (!value) {
+        isOpen.value = false;
+      }
+    },
+  });
+
+const fixedCaseModel = (key: FixedCaseKey) =>
+  computed({
+    get: () => isFixedOpen.value && activeFixedCase.value === key,
+    set: (value) => {
+      if (!value) {
+        isFixedOpen.value = false;
+      }
+    },
+  });
+
+const openDefault = caseModel("basic");
+const openCollapsed = caseModel("collapsed");
+const openBackdrop = caseModel("backdrop");
+const openCustomSizes = caseModel("custom");
+
+const openFixedDefault = fixedCaseModel("basic");
+const openFixedCustomHeight = fixedCaseModel("customHeight");
+const openFixedBackdrop = fixedCaseModel("backdrop");
+const openFixedHeader = fixedCaseModel("customHeader");
+
+watch(openDefault, (newVal) => {
+  if (newVal) registerDefault();
+});
+watch(openCollapsed, (newVal) => {
+  if (newVal) registerCollapsed();
+});
+watch(openBackdrop, (newVal) => {
+  if (newVal) registerBackdrop();
+});
+watch(openCustomSizes, (newVal) => {
+  if (newVal) registerCustomSizes();
+});
+
+watch(openFixedDefault, (newVal) => {
+  if (newVal) registerFixedDefault();
+});
+watch(openFixedCustomHeight, (newVal) => {
+  if (newVal) registerFixedCustomHeight();
+});
+watch(openFixedBackdrop, (newVal) => {
+  if (newVal) registerFixedBackdrop();
+});
+watch(openFixedHeader, (newVal) => {
+  if (newVal) registerFixedHeader();
+});
 </script>
 
 <template>
   <div class="app-container">
-    <h1>Bottom Sheet Example</h1>
-    <p>
-      This is a simple example to test the library component. Mode:
-      <b>{{ mode }}</b>
-    </p>
-    <button @click="isOpen = true">Open Bottom Sheet</button>
-
-    <BottomSheet
-      v-model="isOpen"
-      :mode="mode"
-      :title="`${title} Example`"
-      show-close-button
-      :show-backdrop="mode === 'dynamic' || mode === 'auto-fit'"
-      :close-on-backdrop="mode === 'auto-fit'"
-      initial-size="small"
-    >
-      <div class="sheet-content">
-        <div class="content-section">
-          <h4>
-            {{ mode.charAt(0).toUpperCase() + mode.slice(1) }} Mode Features
-          </h4>
-
-          <ul v-if="mode === 'dynamic'" class="feature-list">
-            <li>✅ Swipe up/down to resize between small, medium, and large</li>
-            <li>✅ Click header to expand to next size</li>
-            <li>✅ Backdrop collapses to small size when clicked</li>
-            <li>
-              ✅ Smart expansion (won't expand to large if content fits in
-              medium)
-            </li>
-            <li>✅ Smooth animations and transitions</li>
-          </ul>
-
-          <ul v-else-if="mode === 'auto-fit'" class="feature-list">
-            <li>✅ Height automatically adjusts to content</li>
-            <li>✅ Swipe down to close</li>
-            <li>✅ Scrolls when content exceeds max-height</li>
-            <li>✅ Click backdrop to close (when enabled)</li>
-            <li>✅ Perfect for dynamic content</li>
-          </ul>
-
-          <ul v-else class="feature-list">
-            <li>✅ Fixed height at 45% screen height (medium)</li>
-            <li>✅ Swipe down to close</li>
-            <li>✅ No resizing gestures</li>
-            <li>✅ No backdrop interference</li>
-            <li>✅ Content scrolls when overflowing</li>
-          </ul>
-        </div>
-
-        <div class="content-section">
-          <h4>Sample Content</h4>
-          <div class="sample-items">
-            <div v-for="i in 8" :key="i" class="sample-item">
-              <div class="item-icon">📄</div>
-              <div class="item-content">
-                <div class="item-title">Item {{ i }}</div>
-                <div class="item-subtitle">
-                  Sample description for item {{ i }}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="content-section">
-          <h4>Code Example</h4>
-          <pre class="code-block"><code>&lt;BottomSheet 
-  v-model="isOpen"
-  mode="{{ mode }}"
-  title="My Sheet"
-  {{ mode === 'dynamic' ? 'initial-size="medium"' : '' }}
-  {{ mode === 'auto-fit' ? ':close-on-backdrop="true"' : '' }}
-&gt;
-  &lt;p&gt;Your content here&lt;/p&gt;
-&lt;/BottomSheet&gt;</code></pre>
-        </div>
+    <section class="case-section">
+      <h1>Casos de uso dinámico</h1>
+      <div class="selector">
+        <button :class="['case-btn', { active: activeCase === 'basic' }]" @click="activeCase = 'basic'">
+          Uso básico
+        </button>
+        <button :class="['case-btn', { active: activeCase === 'collapsed' }]" @click="activeCase = 'collapsed'">
+          Contenido colapsado
+        </button>
+        <button :class="['case-btn', { active: activeCase === 'backdrop' }]" @click="activeCase = 'backdrop'">
+          Backdrop y cierre
+        </button>
+        <button :class="['case-btn', { active: activeCase === 'custom' }]" @click="activeCase = 'custom'">
+          Tamaños personalizados
+        </button>
       </div>
-    </BottomSheet>
+      <button class="primary-btn" @click="openSelectedCase">
+        Mostrar caso seleccionado
+      </button>
+    </section>
+
+    <section class="case-section">
+      <h1>Casos de uso fixed</h1>
+      <div class="selector">
+        <button :class="['case-btn', { active: activeFixedCase === 'basic' }]" @click="activeFixedCase = 'basic'">
+          Auto altura
+        </button>
+        <button :class="['case-btn', { active: activeFixedCase === 'customHeight' }]"
+          @click="activeFixedCase = 'customHeight'">
+          Alto fijo
+        </button>
+        <button :class="['case-btn', { active: activeFixedCase === 'backdrop' }]"
+          @click="activeFixedCase = 'backdrop'">
+          Backdrop
+        </button>
+        <button :class="['case-btn', { active: activeFixedCase === 'customHeader' }]"
+          @click="activeFixedCase = 'customHeader'">
+          Header custom
+        </button>
+      </div>
+      <button class="primary-btn" @click="openFixedSelectedCase">
+        Mostrar caso seleccionado
+      </button>
+    </section>
   </div>
+
+  <dynamic-bottom-sheet v-model="openDefault" title="Caso 1: Uso básico" :z-index="zIndexDefault">
+    <div class="sheet-body">
+      <h3>Uso básico</h3>
+      <p>Sheet con tamaños por defecto y contenido estándar.</p>
+      <button class="secondary-btn" @click="closeCase">Cerrar</button>
+    </div>
+  </dynamic-bottom-sheet>
+
+  <dynamic-bottom-sheet v-model="openCollapsed" title="Caso 2: Contenido colapsado" :z-index="zIndexCollapsed">
+    <div class="sheet-body">
+      <h3>Contenido completo</h3>
+      <p>Al colapsar, se muestra el slot dedicado.</p>
+      <button class="secondary-btn" @click="closeCase">Cerrar</button>
+    </div>
+    <template #collapsed-content>
+      <div class="collapsed-preview">
+        <span>Vista rápida</span>
+        <button class="secondary-btn" @click="closeCase">Cerrar</button>
+      </div>
+    </template>
+  </dynamic-bottom-sheet>
+
+  <dynamic-bottom-sheet v-model="openBackdrop" title="Caso 3: Backdrop y cierre" :z-index="zIndexBackdrop" show-backdrop
+    close-on-backdrop>
+    <div class="sheet-body">
+      <h3>Backdrop activo</h3>
+      <p>Click en el fondo cierra el sheet.</p>
+      <button class="secondary-btn" @click="closeCase">Cerrar</button>
+    </div>
+  </dynamic-bottom-sheet>
+
+  <dynamic-bottom-sheet v-model="openCustomSizes" title="Caso 4: Tamaños personalizados" :z-index="zIndexCustomSizes" 
+    initial-size="half" half="35dvh" full="80dvh">
+    <div class="sheet-body">
+      <h3>Tamaños personalizados</h3>
+      <p>Half 35dvh y Full 80dvh.</p>
+      <p>Half 35dvh y Full 80dvh.</p>
+      <p>Half 35dvh y Full 80dvh.</p>
+      <p>Half 35dvh y Full 80dvh.</p>
+      <p>Half 35dvh y Full 80dvh.</p>
+      <p>Half 35dvh y Full 80dvh.</p>
+      <p>Half 35dvh y Full 80dvh.</p>
+      <p>Half 35dvh y Full 80dvh.</p>
+      <p>Half 35dvh y Full 80dvh.</p>
+      <button class="secondary-btn" @click="closeCase">Cerrar</button>
+    </div>
+  </dynamic-bottom-sheet>
+
+  <fixed-bottom-sheet v-model="openFixedDefault" title="Fixed 1: Auto altura" :z-index="zIndexFixedDefault">
+    <div class="sheet-body">
+      <h3>Auto altura</h3>
+      <p>Se ajusta al contenido con tope 95dvh.</p>
+      <button class="secondary-btn" @click="closeFixedCase">Cerrar</button>
+    </div>
+  </fixed-bottom-sheet>
+
+  <fixed-bottom-sheet v-model="openFixedCustomHeight" title="Fixed 2: Alto fijo" :z-index="zIndexFixedCustomHeight"
+    :height="360">
+    <div class="sheet-body">
+      <h3>Alto fijo</h3>
+      <p>Altura forzada a 360px y contenido con scroll.</p>
+      <div class="long-list">
+        <div v-for="i in 10" :key="i" class="long-item">Item {{ i }}</div>
+      </div>
+      <button class="secondary-btn" @click="closeFixedCase">Cerrar</button>
+    </div>
+  </fixed-bottom-sheet>
+
+  <fixed-bottom-sheet v-model="openFixedBackdrop" title="Fixed 3: Backdrop" :z-index="zIndexFixedBackdrop" show-backdrop>
+    <div class="sheet-body">
+      <h3>Backdrop</h3>
+      <p>El fondo bloquea clics pero no cierra automáticamente.</p>
+      <button class="secondary-btn" @click="closeFixedCase">Cerrar</button>
+    </div>
+  </fixed-bottom-sheet>
+
+  <fixed-bottom-sheet v-model="openFixedHeader" :z-index="zIndexFixedHeader">
+    <template #header>
+      <div class="custom-header">
+        <strong>Header personalizado</strong>
+        <span>Fixed</span>
+      </div>
+    </template>
+    <div class="sheet-body">
+      <h3>Header custom</h3>
+      <p>Slot header reemplaza el título por defecto.</p>
+      <button class="secondary-btn" @click="closeFixedCase">Cerrar</button>
+    </div>
+  </fixed-bottom-sheet>
 </template>
 
 <style>
+body {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 .app-container {
-  font-family: sans-serif;
-  padding: 20px;
-  max-width: 600px;
-  margin: 0 auto;
-  text-align: center;
+  margin: 0;
+  padding: 24px 16px 40px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 32px;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 button {
-  padding: 10px 20px;
-  font-size: 16px;
-  cursor: pointer;
-  background-color: #4caf50;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  margin-top: 20px;
-}
-
-button:hover {
-  background-color: #45a049;
-}
-.demo-card {
-  background: white;
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
-  border: 1px solid #e5e7eb;
-}
-
-.demo-card:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-  transform: translateY(-2px);
-}
-
-.demo-card-header {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
-.demo-icon {
-  font-size: 48px;
-  line-height: 1;
-}
-
-.demo-info {
-  flex: 1;
-}
-
-.demo-title {
-  font-size: 20px;
-  font-weight: 600;
-  color: #111827;
-  margin-bottom: 8px;
-}
-
-.demo-description {
-  font-size: 14px;
-  color: #6b7280;
-  line-height: 1.5;
-}
-
-.demo-button {
-  width: 100%;
   padding: 12px 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  border-radius: 8px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  border: none;
+  border-radius: 10px;
 }
 
-.demo-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+.primary-btn {
+  background: #111827;
+  color: white;
 }
 
-.demo-button:active {
-  transform: translateY(0);
+.selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
 }
 
-.sheet-content {
-  padding: 0 8px 16px;
-}
-
-.content-section {
-  margin-bottom: 24px;
-}
-
-.content-section h4 {
-  font-size: 16px;
-  font-weight: 600;
+.case-btn {
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: rgba(17, 24, 39, 0.08);
   color: #111827;
-  margin-bottom: 12px;
+  border: 1px solid transparent;
 }
 
-.feature-list {
-  list-style: none;
-  padding: 0;
+.case-btn.active {
+  background: #111827;
+  color: white;
 }
 
-.feature-list li {
-  padding: 8px 0;
-  color: #374151;
+.secondary-btn {
+  background: rgba(0, 0, 0, 0.08);
+  color: #111827;
+  padding: 8px 16px;
+  border-radius: 8px;
+}
+
+.case-section {
+  width: min(640px, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.sheet-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.collapsed-preview {
+  padding: 12px 16px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.custom-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px 8px;
   font-size: 14px;
-  line-height: 1.6;
+  width: 100%;
 }
 
-.sample-items {
+.long-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.sample-item {
-  display: flex;
-  gap: 12px;
-  padding: 12px;
-  background: #f9fafb;
+.long-item {
+  padding: 10px 12px;
   border-radius: 8px;
-  transition: background 0.2s;
-}
-
-.sample-item:hover {
-  background: #f3f4f6;
-}
-
-.item-icon {
-  font-size: 24px;
-}
-
-.item-content {
-  flex: 1;
-}
-
-.item-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #111827;
-  margin-bottom: 4px;
-}
-
-.item-subtitle {
-  font-size: 12px;
-  color: #6b7280;
-}
-
-.code-block {
-  background: #1f2937;
-  color: #e5e7eb;
-  padding: 16px;
-  border-radius: 8px;
-  font-size: 13px;
-  line-height: 1.6;
-  overflow-x: auto;
-  font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
-}
-
-.code-block code {
-  color: #e5e7eb;
+  background: rgba(0, 0, 0, 0.04);
 }
 </style>
