@@ -1,18 +1,18 @@
 import { ref, type Ref, type ComputedRef } from 'vue'
-import type { SheetMode, SheetSize } from '../../types'
 import type { SizesPx } from './types'
 
-interface UseGestureHandlingParams {
-    effectiveMode: ComputedRef<SheetMode>
-    currentSize: Ref<SheetSize>
+export type DynamicSize = 'collapsed' | 'half' | 'full'
+
+interface UseDynamicGesturesParams {
+    currentSize: Ref<DynamicSize>
     sizesPx: ComputedRef<SizesPx>
-    canExpandToLarge: ComputedRef<boolean>
+    canExpandToFull: ComputedRef<boolean>
     contentScrollTop: Ref<number>
-    animateToSize: (size: SheetSize) => void
+    animateToSize: (size: DynamicSize) => void
     handleClose: () => void
 }
 
-interface UseGestureHandlingReturn {
+interface UseDynamicGesturesReturn {
     isDragging: Ref<boolean>
     gestureState: {
         startY: Ref<number>
@@ -34,22 +34,33 @@ interface UseGestureHandlingReturn {
 }
 
 const SNAP_THRESHOLD = 50
+/** Minimum vertical movement before we decide it's a vertical gesture (vs horizontal scroll) */
+const DIRECTION_LOCK_THRESHOLD = 8
 
 /**
- * Composable for handling all drag/swipe gestures
- * 
- * Manages:
- * - Header pan gestures
- * - Header click to expand
- * - Content touch gestures with scroll detection
- * - Mode-specific gesture behavior
+ * Map DynamicSize to SizesPx keys
  */
-export function useGestureHandling(params: UseGestureHandlingParams): UseGestureHandlingReturn {
+const sizeKey = (size: DynamicSize): keyof SizesPx => {
+    if (size === 'collapsed') return 'small'
+    if (size === 'half') return 'medium'
+    return 'large'
+}
+
+/**
+ * Composable for handling all drag/swipe gestures in dynamic bottom sheet
+ *
+ * Manages:
+ * - Header pan gestures (fluid height resize while dragging)
+ * - Header click to cycle sizes
+ * - Content touch gestures with scroll detection
+ * - Three breakpoints: collapsed → half → full
+ * - Vertical-only gesture lock: horizontal swipes are ignored to allow horizontal scrolling
+ */
+export function useDynamicGestures(params: UseDynamicGesturesParams): UseDynamicGesturesReturn {
     const {
-        effectiveMode,
         currentSize,
         sizesPx,
-        canExpandToLarge,
+        canExpandToFull,
         contentScrollTop,
         animateToSize,
         handleClose
@@ -66,13 +77,18 @@ export function useGestureHandling(params: UseGestureHandlingParams): UseGesture
     const contentTouchIsActive = ref(false)
     const contentTouchStartY = ref(0)
 
+    // Direction lock state for content gestures
+    // 'none' = not yet determined, 'vertical' = locked vertical, 'horizontal' = locked horizontal (ignore)
+    let directionLock: 'none' | 'vertical' | 'horizontal' = 'none'
+    let touchStartX = 0
+
     // --- Internal Gesture Methods ---
 
     const startDrag = (y: number): void => {
         isDragging.value = true
         gestureStartY.value = y
         gestureCurrentY.value = y
-        gestureStartHeight.value = sizesPx.value[currentSize.value]
+        gestureStartHeight.value = sizesPx.value[sizeKey(currentSize.value)]
     }
 
     const updateDrag = (y: number): void => {
@@ -86,46 +102,40 @@ export function useGestureHandling(params: UseGestureHandlingParams): UseGesture
 
         const deltaY = y - gestureStartY.value
 
-        // Fixed mode: only allow closing on swipe down
-        if (effectiveMode.value === 'fixed') {
-            if (deltaY > SNAP_THRESHOLD) {
-                handleClose()
-            }
-            return
-        }
-
-        // Auto-fit mode: only allow closing on swipe down
-        if (effectiveMode.value === 'auto-fit') {
-            if (deltaY > SNAP_THRESHOLD) {
-                handleClose()
-            }
-            return
-        }
-
-        // Dynamic mode: resize based on drag direction
+        // Dragged Down — shrink
         if (deltaY > SNAP_THRESHOLD) {
-            // Dragged Down
-            if (currentSize.value === 'large') {
-                animateToSize('medium')
-            } else if (currentSize.value === 'medium') {
-                animateToSize('small')
+            if (currentSize.value === 'full') {
+                animateToSize('half')
+            } else if (currentSize.value === 'half') {
+                animateToSize('collapsed')
             }
-        } else if (deltaY < -SNAP_THRESHOLD) {
-            // Dragged Up
-            if (currentSize.value === 'small') {
-                animateToSize('medium')
-            } else if (currentSize.value === 'medium') {
-                if (canExpandToLarge.value) {
-                    animateToSize('large')
+            // collapsed + drag down: no-op
+        }
+        // Dragged Up — expand
+        else if (deltaY < -SNAP_THRESHOLD) {
+            if (currentSize.value === 'collapsed') {
+                animateToSize('half')
+            } else if (currentSize.value === 'half') {
+                if (canExpandToFull.value) {
+                    animateToSize('full')
                 } else {
-                    // Snap back to medium if content is small
-                    animateToSize('medium')
+                    animateToSize('half')
                 }
             }
+            // full + drag up: no-op
         }
     }
 
-    // --- Public Handlers ---
+    const cancelDrag = (): void => {
+        if (isDragging.value) {
+            isDragging.value = false
+            // Snap back to current size (no change)
+            gestureCurrentY.value = gestureStartY.value
+        }
+    }
+
+    // --- Public Handlers: Header ---
+    // Header gestures are always vertical (touch-action: none on header element)
 
     const handleHeaderTouchStart = (event: TouchEvent): void => {
         const touch = event.touches[0]
@@ -158,7 +168,6 @@ export function useGestureHandling(params: UseGestureHandlingParams): UseGesture
         event.preventDefault()
         startDrag(event.clientY)
 
-        // Add global mouse event listeners
         document.addEventListener('mousemove', handleDocumentMouseMove)
         document.addEventListener('mouseup', handleDocumentMouseUp)
     }
@@ -176,32 +185,27 @@ export function useGestureHandling(params: UseGestureHandlingParams): UseGesture
         event.preventDefault()
         endDrag(event.clientY)
 
-        // Remove global mouse event listeners
         document.removeEventListener('mousemove', handleDocumentMouseMove)
         document.removeEventListener('mouseup', handleDocumentMouseUp)
     }
 
+    // Header click — cycle through sizes
     const handleHeaderClick = (): void => {
-        // In auto-fit and fixed modes, header click doesn't expand
-        if (effectiveMode.value === 'auto-fit' || effectiveMode.value === 'fixed') {
-            return
-        }
-
-        // Dynamic mode: click to cycle through sizes
-        if (currentSize.value === 'small') {
-            animateToSize('medium')
-        } else if (currentSize.value === 'medium') {
-            if (canExpandToLarge.value) {
-                animateToSize('large')
+        if (currentSize.value === 'collapsed') {
+            animateToSize('half')
+        } else if (currentSize.value === 'half') {
+            if (canExpandToFull.value) {
+                animateToSize('full')
             } else {
-                // If can't expand to large, go back to small
-                animateToSize('small')
+                animateToSize('collapsed')
             }
-        } else if (currentSize.value === 'large') {
-            // Collapse back to small
-            animateToSize('small')
+        } else if (currentSize.value === 'full') {
+            animateToSize('collapsed')
         }
     }
+
+    // --- Public Handlers: Content ---
+    // Content gestures need direction lock to allow horizontal scrolling
 
     const handleContentTouchStart = (event: TouchEvent): void => {
         const touch = event.touches[0]
@@ -209,17 +213,11 @@ export function useGestureHandling(params: UseGestureHandlingParams): UseGesture
 
         contentTouchStartY.value = touch.clientY
         contentTouchIsActive.value = true
+        directionLock = 'none'
+        touchStartX = touch.clientX
 
-        // Fixed mode: allow dragging only when at top
-        if (effectiveMode.value === 'fixed') {
-            // Will be handled in touchmove
-            return
-        }
-
-        if (currentSize.value !== 'large' && effectiveMode.value !== 'auto-fit') {
-            startDrag(touch.clientY)
-        }
-        // Large mode or auto-fit: Only drag if at top and pulling down
+        // In non-full sizes where content doesn't scroll, we'll decide direction in touchmove
+        // Don't start drag yet — wait for direction lock
     }
 
     const handleContentTouchMove = (event: TouchEvent): void => {
@@ -229,42 +227,52 @@ export function useGestureHandling(params: UseGestureHandlingParams): UseGesture
         if (touch === undefined) return
 
         const currentY = touch.clientY
+        const currentX = touch.clientX
         const deltaY = currentY - contentTouchStartY.value
+        const deltaX = currentX - touchStartX
 
+        // If already dragging (direction was locked vertical), continue
         if (isDragging.value) {
             event.preventDefault()
             updateDrag(currentY)
             return
         }
 
-        // Fixed mode: start drag only when scrolled to top and pulling down
-        if (effectiveMode.value === 'fixed') {
-            if (contentScrollTop.value <= 0 && deltaY > 0) {
-                startDrag(contentTouchStartY.value)
-                updateDrag(currentY)
-                event.preventDefault()
+        // Determine direction lock if not yet decided
+        if (directionLock === 'none') {
+            const absX = Math.abs(deltaX)
+            const absY = Math.abs(deltaY)
+
+            // Need minimum movement to decide
+            if (absX < DIRECTION_LOCK_THRESHOLD && absY < DIRECTION_LOCK_THRESHOLD) {
+                return // Not enough movement yet
             }
+
+            if (absX > absY) {
+                // Horizontal gesture — let browser handle it (horizontal scroll)
+                directionLock = 'horizontal'
+                return
+            } else {
+                // Vertical gesture — we handle it
+                directionLock = 'vertical'
+            }
+        }
+
+        // If locked horizontal, do nothing (allow native horizontal scroll)
+        if (directionLock === 'horizontal') {
             return
         }
 
-        // Auto-fit mode: start drag only when scrolled to top and pulling down
-        if (effectiveMode.value === 'auto-fit') {
-            if (contentScrollTop.value <= 0 && deltaY > 0) {
-                startDrag(contentTouchStartY.value)
-                updateDrag(currentY)
-                event.preventDefault()
-            }
-            return
-        }
-
-        // Dynamic mode
-        if (currentSize.value === 'large') {
+        // Vertical gesture handling
+        if (currentSize.value === 'full') {
+            // Full size: start drag only when scrolled to top and pulling down
             if (contentScrollTop.value <= 0 && deltaY > 0) {
                 startDrag(contentTouchStartY.value)
                 updateDrag(currentY)
                 event.preventDefault()
             }
         } else {
+            // Non-full sizes: always drag vertically
             if (!isDragging.value) {
                 startDrag(contentTouchStartY.value)
                 updateDrag(currentY)
@@ -275,6 +283,7 @@ export function useGestureHandling(params: UseGestureHandlingParams): UseGesture
 
     const handleContentTouchEnd = (event: TouchEvent): void => {
         contentTouchIsActive.value = false
+        directionLock = 'none'
 
         if (isDragging.value) {
             const touch = event.changedTouches[0]
