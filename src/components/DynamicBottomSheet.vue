@@ -1,7 +1,7 @@
 <template>
   <Teleport to="body">
     <Transition name="bsw-bottom-sheet">
-      <div v-if="isVisible" class="bsw-bottom-sheet-wrapper" :style="{ zIndex: zIndex }" v-bind="$attrs">
+      <div v-if="isVisible" class="bsw-bottom-sheet-wrapper" :style="{ zIndex: 9000 + zIndex }" v-bind="$attrs">
         <!-- Backdrop Layer (visible backdrop) -->
         <div v-if="shouldShowBackdrop" class="bsw-bottom-sheet-backdrop" :class="{
           'bsw-bottom-sheet-backdrop--visible': showBackdrop,
@@ -17,9 +17,7 @@
           <!-- Header con Handle - gestos del header -->
           <div ref="headerRef" class="bsw-bottom-sheet-header" @click="handleHeaderClick"
             @touchstart="handleHeaderTouchStart" @touchmove="handleHeaderTouchMove" @touchend="handleHeaderTouchEnd"
-            @mousedown="handleHeaderMouseDown"
-            v-show="!showCollapsedContent"
-          >
+            @mousedown="handleHeaderMouseDown" v-show="!showCollapsedContent">
             <!-- Handle -->
             <div class="bsw-bottom-sheet-handle" />
 
@@ -44,14 +42,12 @@
           <!-- Content -->
           <div ref="contentWrapperRef" class="bsw-bottom-sheet-content"
             :class="{ 'bsw-bottom-sheet-content--scrollable': isScrollable }" @scroll="handleContentScroll"
-            @touchstart="handleContentTouchStart" @touchmove="handleContentTouchMove"
-            @touchend="handleContentTouchEnd">
-            
+            @touchstart="handleContentTouchStart" @touchmove="handleContentTouchMove" @touchend="handleContentTouchEnd">
+
             <!-- Handle -->
             <div class="bsw-bottom-sheet-handle-container" v-if="showCollapsedContent" @click="handleHeaderClick">
               <div class="bsw-bottom-sheet-handle" />
-              <button v-if="showCloseButton" class="close-btn"
-              @click.stop="handleClose">
+              <button v-if="showCloseButton" class="close-btn" @click.stop="handleClose">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
                   stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -108,9 +104,6 @@ export interface DynamicBottomSheetProps {
 defineOptions({
   inheritAttrs: false
 })
-// ============================================================================
-// Props & Emits
-// ============================================================================
 
 const props = withDefaults(defineProps<DynamicBottomSheetProps>(), {
   modelValue: false,
@@ -122,7 +115,7 @@ const props = withDefaults(defineProps<DynamicBottomSheetProps>(), {
   showBackdrop: false,
   closeOnBackdrop: false,
   persistent: false,
-  zIndex: 9000
+  zIndex: 1
 })
 
 const emit = defineEmits<{
@@ -135,28 +128,18 @@ const emit = defineEmits<{
 
 const slots = useSlots()
 
-// ============================================================================
-// DOM Refs
-// ============================================================================
-
 const headerRef = ref<HTMLElement | null>(null)
 const innerContentRef = ref<HTMLElement | null>(null)
 const collapsedContentRef = ref<HTMLElement | null>(null)
 const panelRef = ref<HTMLElement | null>(null)
 
-// ============================================================================
-// State
-// ============================================================================
-
 const isVisible = ref(props.modelValue)
 const isClosing = ref(false)
 
-// Height tracking
 const headerHeight = ref(0)
 const contentHeight = ref(0)
 const collapsedContentHeight = ref(0)
 
-// Whether the collapsed-content slot is provided
 const hasCollapsedSlot = computed(() => !!slots['collapsed-content'])
 const hasHeaderSlot = computed(() => !!slots['header'])
 
@@ -222,23 +205,13 @@ watch(() => gestureState.startY.value, (v) => { tempGestureState.startY.value = 
 watch(() => gestureState.currentY.value, (v) => { tempGestureState.currentY.value = v })
 watch(() => gestureState.startHeight.value, (v) => { tempGestureState.startHeight.value = v })
 
-// Use the base panel styles (they read from the synced temp refs)
 const panelStyles = _basePanelStyles
 
-// Show collapsed content only when collapsed AND slot exists
 const showCollapsedContent = computed(() =>
   currentSize.value === 'collapsed' && hasCollapsedSlot.value
 )
 
-// ============================================================================
-// Backdrop
-// ============================================================================
-
 const shouldShowBackdrop = computed(() => props.showBackdrop)
-
-// ============================================================================
-// Methods
-// ============================================================================
 
 function handleClose(): void {
   if (props.persistent) return
@@ -288,17 +261,14 @@ const handleDocumentPointerDown = (event: PointerEvent): void => {
   if (shouldShowBackdrop.value) return
   if (currentSize.value === 'collapsed') return
 
-  // If the click is inside the panel, ignore
   if (panelRef.value && panelRef.value.contains(event.target as Node)) {
     return
   }
 
-  // Click was outside the panel — collapse (don't prevent the event)
   animateToSize('collapsed')
 }
 
 const startOutsideClickListener = (): void => {
-  // Use capture phase so we see the event before any stopPropagation
   document.addEventListener('pointerdown', handleDocumentPointerDown, true)
 }
 
@@ -315,10 +285,6 @@ const unlockBodyScroll = (): void => {
   document.body.style.overflow = ''
   document.body.style.paddingRight = ''
 }
-
-// ============================================================================
-// Resize Observers
-// ============================================================================
 
 let headerObserver: ResizeObserver | null = null
 let contentObserver: ResizeObserver | null = null
@@ -375,10 +341,6 @@ const cleanupObservers = (): void => {
   collapsedObserver = null
 }
 
-// ============================================================================
-// Open / Close
-// ============================================================================
-
 const open = (): void => {
   isVisible.value = true
   currentSize.value = props.initialSize || 'collapsed'
@@ -398,16 +360,11 @@ const close = (): void => {
   handleClose()
 }
 
-// ============================================================================
-// Watchers
-// ============================================================================
-
 watch(() => props.modelValue, (newVal: boolean) => {
   if (newVal) open()
   else close()
 })
 
-// Lock/unlock body scroll based on size
 watch(currentSize, (newSize) => {
   if (!isVisible.value) return
 
@@ -418,16 +375,11 @@ watch(currentSize, (newSize) => {
   }
 })
 
-// Re-observe collapsed content ref when it appears/disappears
 watch(showCollapsedContent, (show) => {
   if (show) {
     nextTick(() => setupCollapsedObserver())
   }
 })
-
-// ============================================================================
-// Lifecycle
-// ============================================================================
 
 onMounted(() => {
   if (props.modelValue) open()
@@ -438,10 +390,6 @@ onBeforeUnmount(() => {
   stopOutsideClickListener()
   unlockBodyScroll()
 })
-
-// ============================================================================
-// Expose
-// ============================================================================
 
 defineExpose({
   open,
@@ -478,6 +426,7 @@ defineExpose({
   touch-action: none;
   position: relative;
 }
+
 .bsw-bottom-sheet-handle-container .close-btn {
   position: absolute;
   top: 3px;

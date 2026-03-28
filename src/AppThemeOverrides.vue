@@ -2,7 +2,6 @@
 import { ref, watchEffect } from "vue";
 import DynamicBottomSheet from "./components/DynamicBottomSheet.vue";
 import FixedBottomSheet from "./components/FixedBottomSheet.vue";
-import { useBottomSheetStack } from "./composables/useBottomSheetStack";
 
 type ThemeKey = "default" | "rounded" | "dark" | "soft";
 
@@ -12,23 +11,9 @@ const openDynamic = ref(false);
 const openFixed = ref(false);
 const openLocal = ref(false);
 
-const { zIndex: zIndexDynamic, register: registerDynamic } = useBottomSheetStack();
-const { zIndex: zIndexFixed, register: registerFixed } = useBottomSheetStack();
-const { zIndex: zIndexLocal, register: registerLocal } = useBottomSheetStack();
-
 watchEffect(() => {
   document.body.classList.remove("theme-default", "theme-rounded", "theme-dark", "theme-soft");
   document.body.classList.add(`theme-${theme.value}`);
-});
-
-watchEffect(() => {
-  if (openDynamic.value) registerDynamic();
-});
-watchEffect(() => {
-  if (openFixed.value) registerFixed();
-});
-watchEffect(() => {
-  if (openLocal.value) registerLocal();
 });
 </script>
 
@@ -48,15 +33,40 @@ watchEffect(() => {
     </div>
   </div>
 
-  <dynamic-bottom-sheet v-model="openDynamic" title="Dynamic con tema global" :z-index="zIndexDynamic">
+  <dynamic-bottom-sheet v-model="openDynamic" title="Dynamic con tema global">
+    <template #collapsed-content>
+      <div>
+        <p>Las variables CSS se aplican desde el body.</p>
+      </div>
+    </template>
     <div class="sheet-body">
       <h3>Theme global</h3>
+      <h3>Theme global</h3>
+      <p>Las variables CSS se aplican desde el body.</p>
+      <p>Las variables CSS se aplican desde el body.</p>
+      <p>Las variables CSS se aplican desde el body.</p>
+      <p>Las variables CSS se aplican desde el body.</p>
+      <p>Las variables CSS se aplican desde el body.</p>
+      <p>Las variables CSS se aplican desde el body.</p>
+      <p>Las variables CSS se aplican desde el body.</p>
+      <p>Las variables CSS se aplican desde el body.</p>
+      <p>Las variables CSS se aplican desde el body.</p>
+      <p>Las variables CSS se aplican desde el body.</p>
+      <p>Las variables CSS se aplican desde el body.</p>
+      <p>Las variables CSS se aplican desde el body.</p>
+      <p>Las variables CSS se aplican desde el body.</p>
+      <p>Las variables CSS se aplican desde el body.</p>
+      <p>Las variables CSS se aplican desde el body.</p>
+      <p>Las variables CSS se aplican desde el body.</p>
+      <p>Las variables CSS se aplican desde el body.</p>
+      <p>Las variables CSS se aplican desde el body.</p>
+      <p>Las variables CSS se aplican desde el body.</p>
       <p>Las variables CSS se aplican desde el body.</p>
       <button class="secondary-btn" @click="openDynamic = false">Cerrar</button>
     </div>
   </dynamic-bottom-sheet>
 
-  <fixed-bottom-sheet v-model="openFixed" title="Fixed con tema global" :z-index="zIndexFixed">
+  <fixed-bottom-sheet v-model="openFixed" title="Fixed con tema global">
     <div class="sheet-body">
       <h3>Theme global</h3>
       <p>Border radius, fondo y handle cambian con el theme.</p>
@@ -64,7 +74,7 @@ watchEffect(() => {
     </div>
   </fixed-bottom-sheet>
 
-  <dynamic-bottom-sheet v-model="openLocal" title="Override local" :z-index="zIndexLocal" class="local-theme">
+  <dynamic-bottom-sheet v-model="openLocal" title="Override local" class="local-theme">
     <div class="sheet-body">
       <h3>Override local</h3>
       <p>Solo este sheet modifica sus variables.</p>
