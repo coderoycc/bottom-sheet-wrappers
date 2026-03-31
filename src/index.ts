@@ -1,23 +1,31 @@
-// Main library entry point
-export { default as BottomSheet } from './components/BottomSheet.vue'
-export { default as FixedBottomSheet } from './components/FixedBottomSheet.vue'
-export { default as DynamicBottomSheet } from './components/DynamicBottomSheet.vue'
+import type { App, Plugin } from "vue";
+import DynamicBottomSheet from "./components/DynamicBottomSheet.vue";
+import FixedBottomSheet from "./components/FixedBottomSheet.vue";
 
-// Export types
+export { DynamicBottomSheet, FixedBottomSheet };
+
 export type {
-    BottomSheetProps,
-    SheetSize,
-    SheetMode,
-    SheetOptions,
-    SheetInstance,
-    SheetState,
-    GestureState,
-    BottomSheetMetadata
-} from './types'
+	BottomSheetProps,
+	SheetSize,
+	SheetMode,
+	SheetOptions,
+	SheetInstance,
+	SheetState,
+	GestureState,
+	BottomSheetMetadata,
+} from "./types";
 
-export type { FixedBottomSheetProps } from './components/FixedBottomSheet.vue'
-export type { DynamicBottomSheetProps, DynamicSize } from './components/DynamicBottomSheet.vue'
+export type { FixedBottomSheetProps } from "./components/FixedBottomSheet.vue";
+export type {
+	DynamicBottomSheetProps,
+	DynamicSize,
+} from "./components/DynamicBottomSheet.vue";
 
-// Default export
-import BottomSheet from './components/BottomSheet.vue'
-export default BottomSheet
+const plugin: Plugin = {
+	install(app: App) {
+		app.component("DynamicBottomSheet", DynamicBottomSheet);
+		app.component("FixedBottomSheet", FixedBottomSheet);
+	},
+};
+
+export default plugin;
