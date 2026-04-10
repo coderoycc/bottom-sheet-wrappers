@@ -6,6 +6,15 @@
   "main": "./dist/bottom-sheet-wrappers.umd.js",
   "module": "./dist/bottom-sheet-wrappers.es.js",
   "types": "./dist/index.d.ts",
+  "style": "./dist/bottom-sheet-wrappers.css",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/bottom-sheet-wrappers.es.js",
+      "require": "./dist/bottom-sheet-wrappers.umd.js"
+    },
+    "./style.css": "./dist/bottom-sheet-wrappers.css"
+  },
   "files": [
     "dist",
     "README.md"

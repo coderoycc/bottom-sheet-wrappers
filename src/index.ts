@@ -1,3 +1,4 @@
+import "./style.scss";
 import type { App, Plugin } from "vue";
 import DynamicBottomSheet from "./components/DynamicBottomSheet.vue";
 import FixedBottomSheet from "./components/FixedBottomSheet.vue";

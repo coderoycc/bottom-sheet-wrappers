@@ -196,10 +196,6 @@ const {
 });
 
 
-watch(() => sizesPx.value, (newSizes) => {
-  console.log("datos pixeles", newSizes)
-})
-
 watch(isDragging, (v) => { tempIsDragging.value = v })
 watch(() => gestureState.startY.value, (v) => { tempGestureState.startY.value = v })
 watch(() => gestureState.currentY.value, (v) => { tempGestureState.currentY.value = v })
