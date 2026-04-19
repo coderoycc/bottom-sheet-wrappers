@@ -58,6 +58,7 @@
   user-select: none;
   touch-action: none;
   position: relative;
+  cursor: pointer;
 }
 
 
@@ -65,10 +66,11 @@
 .bsw-bottom-sheet-handle {
   width: var(--bsw-handle-width, 40px);
   height: var(--bsw-handle-height, 4px);
-  background: var(--bsw-handle-background, rgba(0, 0, 0, 0.2));
+  background: var(--bsw-handle-background, rgba(0, 0, 0, 0.5));
   border-radius: var(--bsw-handle-border-radius, 2px);
-  margin: 0 auto 12px;
+  margin: 0 auto 8px;
   cursor: pointer;
+  opacity: 0.6;
 }
 
 .bsw-bottom-sheet-close-btn {

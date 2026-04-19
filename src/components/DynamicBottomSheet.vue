@@ -6,7 +6,7 @@
         <div v-if="shouldShowBackdrop" class="bsw-bottom-sheet-backdrop" :class="{
           'bsw-bottom-sheet-backdrop--visible': showBackdrop,
           'bsw-bottom-sheet-backdrop--closing': isClosing
-        }" @click="handleBackdropClick"></div>
+        }" @click="handleHeaderClick"></div>
 
         <!-- Panel Principal -->
         <div ref="panelRef" class="bsw-bottom-sheet-panel" :class="[
@@ -19,10 +19,10 @@
             @touchstart="handleHeaderTouchStart" @touchmove="handleHeaderTouchMove" @touchend="handleHeaderTouchEnd"
             @mousedown="handleHeaderMouseDown" v-show="!showCollapsedContent">
             <!-- Handle -->
-            <div class="bsw-bottom-sheet-handle" />
+            <div v-if="!hideDragHandle" class="bsw-bottom-sheet-handle" />
 
             <!-- Close Button (solo si no hay header personalizado) -->
-            <button v-if="showCloseButton && !hasHeaderSlot" class="bsw-bottom-sheet-close-btn"
+            <button v-if="!hideCloseButton && !hasHeaderSlot" class="bsw-bottom-sheet-close-btn"
               @click.stop="handleClose">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -46,8 +46,8 @@
 
             <!-- Handle -->
             <div class="bsw-bottom-sheet-handle-container" v-if="showCollapsedContent" @click="handleHeaderClick">
-              <div class="bsw-bottom-sheet-handle" />
-              <button v-if="showCloseButton" class="close-btn" @click.stop="handleClose">
+              <div v-if="!hideDragHandle" class="bsw-bottom-sheet-handle" />
+              <button v-if="!hideCloseButton" class="close-btn" @click.stop="handleClose">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
                   stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -94,10 +94,9 @@ export interface DynamicBottomSheetProps {
   initialSize?: DynamicSize
   half?: string
   full?: string
-  showCloseButton?: boolean
+  hideCloseButton?: boolean
   showBackdrop?: boolean
-  closeOnBackdrop?: boolean
-  persistent?: boolean
+  hideDragHandle?: boolean
   zIndex?: number
 }
 
@@ -111,10 +110,9 @@ const props = withDefaults(defineProps<DynamicBottomSheetProps>(), {
   initialSize: 'half',
   half: '45dvh',
   full: '95dvh',
-  showCloseButton: true,
+  hideCloseButton: false,
   showBackdrop: false,
-  closeOnBackdrop: false,
-  persistent: false,
+  hideDragHandle: false,
   zIndex: 1
 })
 
@@ -207,10 +205,10 @@ const showCollapsedContent = computed(() =>
   currentSize.value === 'collapsed' && hasCollapsedSlot.value
 )
 
-const shouldShowBackdrop = computed(() => props.showBackdrop)
+const shouldShowBackdrop = computed(() => props.showBackdrop && currentSize.value !== 'collapsed')
 
 function handleClose(): void {
-  if (props.persistent) return
+  if (!isVisible.value || isClosing.value) return
 
   isClosing.value = true
   emit('close')
@@ -237,12 +235,6 @@ const handleTransitionEnd = (event: TransitionEvent): void => {
     emit('update:modelValue', false)
     emit('closed')
     unlockBodyScroll()
-  }
-}
-
-const handleBackdropClick = (): void => {
-  if (props.closeOnBackdrop) {
-    handleClose()
   }
 }
 
@@ -395,12 +387,10 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
-/* Collapsed content styles */
 .bsw-bottom-sheet-collapsed-content {
   padding: 0 0px 8px;
 }
 
-/* Transition for collapsed ↔ regular content swap */
 .bsw-collapsed-content-enter-active,
 .bsw-collapsed-content-leave-active,
 .bsw-regular-content-enter-active,
@@ -421,6 +411,7 @@ defineExpose({
   user-select: none;
   touch-action: none;
   position: relative;
+  cursor: pointer;
 }
 
 .bsw-bottom-sheet-handle-container .close-btn {
