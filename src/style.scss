@@ -39,6 +39,7 @@
   background: var(--bsw-background, #ffffff);
   border-radius: var(--bsw-border-radius, 16px) var(--bsw-border-radius, 16px) 0 0;
   box-shadow: var(--bsw-box-shadow, 0 -2px 20px rgba(0, 0, 0, 0.15));
+  color: var(--bsw-content-color, var(--bsw-text-color, #111827));
 
   display: flex;
   flex-direction: column;
@@ -59,15 +60,14 @@
   touch-action: none;
   position: relative;
   cursor: pointer;
+  color: var(--bsw-header-color, var(--bsw-text-color, #111827));
 }
 
-
-
 .bsw-bottom-sheet-handle {
-  width: var(--bsw-handle-width, 40px);
-  height: var(--bsw-handle-height, 4px);
-  background: var(--bsw-handle-background, rgba(0, 0, 0, 0.5));
-  border-radius: var(--bsw-handle-border-radius, 2px);
+  width: 40px;
+  height: 4px;
+  background: var(--bsw-handle-background, var(--bsw-muted-color, rgba(0, 0, 0, 0.5)));
+  border-radius: 2px;
   margin: 0 auto 8px;
   cursor: pointer;
   opacity: 0.6;
@@ -99,12 +99,7 @@
 .bsw-bottom-sheet-close-btn svg {
   width: 20px;
   height: 20px;
-  color: var(--bsw-close-btn-color, rgba(0, 0, 0, 0.5));
-  transition: color 0.2s;
-}
-
-.bsw-bottom-sheet-close-btn:hover svg {
-  color: var(--bsw-close-btn-hover-color, rgba(0, 0, 0, 0.8));
+  color: var(--bsw-close-btn-color, var(--bsw-muted-color, rgba(0, 0, 0, 0.5)));
 }
 
 .bsw-bottom-sheet-header-content {

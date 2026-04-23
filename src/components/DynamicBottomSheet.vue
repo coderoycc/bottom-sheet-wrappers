@@ -6,7 +6,7 @@
         <div v-if="shouldShowBackdrop" class="bsw-bottom-sheet-backdrop" :class="{
           'bsw-bottom-sheet-backdrop--visible': showBackdrop,
           'bsw-bottom-sheet-backdrop--closing': isClosing
-        }" @click="handleHeaderClick"></div>
+        }" @click="animateToSize('collapsed')"></div>
 
         <!-- Panel Principal -->
         <div ref="panelRef" class="bsw-bottom-sheet-panel" :class="[
@@ -59,7 +59,8 @@
 
             <!-- Collapsed content slot — shown only when collapsed and slot exists -->
             <Transition name="bsw-collapsed-content">
-              <div v-if="showCollapsedContent" ref="collapsedContentRef" class="bsw-bottom-sheet-collapsed-content">
+              <div v-if="showCollapsedContent" ref="collapsedContentRef" class="bsw-bottom-sheet-collapsed-content"
+                @click="animateToSize('half')">
                 <slot name="collapsed-content" />
               </div>
             </Transition>
@@ -389,6 +390,7 @@ defineExpose({
 <style lang="scss" scoped>
 .bsw-bottom-sheet-collapsed-content {
   padding: 0 0px 8px;
+  cursor: pointer;
 }
 
 .bsw-collapsed-content-enter-active,
@@ -433,8 +435,7 @@ defineExpose({
   opacity: 0.4;
 }
 
-.bsw.bottom-sheet-handle-container .close-btn svg {
-  color: var(--bsw-close-btn-color, rgba(0, 0, 0, 0.5));
-  transition: color 0.2s;
+.bsw-bottom-sheet-handle-container .close-btn svg {
+  color: var(--bsw-close-btn-color, var(--bsw-muted-color, rgba(0, 0, 0, 0.5)));
 }
 </style>
