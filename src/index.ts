@@ -1,9 +1,9 @@
 import "./style.scss";
 import type { App, Plugin } from "vue";
 import DynamicBottomSheet from "./components/DynamicBottomSheet.vue";
-import FixedBottomSheet from "./components/FixedBottomSheet.vue";
+import SimpleBottomSheet from "./components/SimpleBottomSheet.vue";
 
-export { DynamicBottomSheet, FixedBottomSheet };
+export { DynamicBottomSheet, SimpleBottomSheet };
 
 export type {
 	BottomSheetProps,
@@ -16,7 +16,7 @@ export type {
 	BottomSheetMetadata,
 } from "./types";
 
-export type { FixedBottomSheetProps } from "./components/FixedBottomSheet.vue";
+export type { SimpleBottomSheetProps } from "./components/SimpleBottomSheet.vue";
 export type {
 	DynamicBottomSheetProps,
 	DynamicSize,
@@ -24,8 +24,9 @@ export type {
 
 const plugin: Plugin = {
 	install(app: App) {
-		app.component("DynamicBottomSheet", DynamicBottomSheet);
-		app.component("FixedBottomSheet", FixedBottomSheet);
+		// Registrados como BsDynamic y BsSimple → se usan como <bs-dynamic> y <bs-simple>
+		app.component("BsDynamic", DynamicBottomSheet);
+		app.component("BsSimple", SimpleBottomSheet);
 	},
 };
 

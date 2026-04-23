@@ -108,8 +108,12 @@ export function useDynamicGestures(params: UseDynamicGesturesParams): UseDynamic
                 animateToSize('half')
             } else if (currentSize.value === 'half') {
                 animateToSize('collapsed')
+            } else if (currentSize.value === 'collapsed') {
+                handleClose()
             }
-            // collapsed + drag down: no-op
+        } else if (currentSize.value === 'collapsed' && deltaY > 30) {
+            // Umbral menor para collapsed ya que el espacio de arrastre es pequeño
+            handleClose()
         }
         // Dragged Up — expand
         else if (deltaY < -SNAP_THRESHOLD) {

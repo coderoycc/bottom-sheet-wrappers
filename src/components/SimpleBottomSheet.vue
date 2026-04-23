@@ -3,10 +3,11 @@
     <Transition name="bsw-bottom-sheet">
       <div v-if="isVisible" class="bsw-bottom-sheet-wrapper" :style="{ zIndex: computedZIndex }" v-bind="$attrs">
         <!-- Backdrop Layer -->
+        <!-- Se oculta al hacer click si closeOnBackdrop = true y no es persistent -->
         <div v-if="showBackdrop" class="bsw-bottom-sheet-backdrop" :class="{
           'bsw-bottom-sheet-backdrop--visible': showBackdrop,
           'bsw-bottom-sheet-backdrop--closing': isClosing
-        }"></div>
+        }" @click="handleBackdropClick"></div>
 
         <!-- Panel Principal -->
         <div ref="panelRef" class="bsw-bottom-sheet-panel bsw-bottom-sheet--fixed" :class="[
@@ -18,7 +19,18 @@
             @mousedown="handleHeaderMouseDown">
 
             <!-- Handle -->
-            <div class="bsw-bottom-sheet-handle" />
+            <div v-if="!hideDragHandle" class="bsw-bottom-sheet-handle" />
+
+            <!-- Close Button (solo si no hay header personalizado) -->
+            <!-- Se oculta si hideCloseButton es true o si persistent es true -->
+            <button v-if="!hideCloseButton && !persistent && !hasHeaderSlot" class="bsw-bottom-sheet-close-btn"
+              @click.stop="close" aria-label="Close">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
 
             <!-- Header Content -->
             <div class="bsw-bottom-sheet-header-content">
@@ -43,9 +55,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick, useSlots } from 'vue'
 import { useAutoHeight } from '../composables/bottom-sheet/useAutoHeight'
-import { useFixedGestures } from '../composables/bottom-sheet/useFixedGestures'
+import { useSimpleGestures } from '../composables/bottom-sheet/useSimpleGestures'
 import { useContentScroll } from '../composables/bottom-sheet/useContentScroll'
 
 defineOptions({
@@ -56,20 +68,28 @@ defineOptions({
 // Props & Emits
 // ============================================================================
 
-export interface FixedBottomSheetProps {
+export interface SimpleBottomSheetProps {
   modelValue?: boolean
   props?: Record<string, any>
   title?: string
   height?: string | number
   showBackdrop?: boolean
+  hideCloseButton?: boolean
+  hideDragHandle?: boolean
+  closeOnBackdrop?: boolean
+  persistent?: boolean
   zIndex?: number
 }
 
-const props = withDefaults(defineProps<FixedBottomSheetProps>(), {
+const props = withDefaults(defineProps<SimpleBottomSheetProps>(), {
   modelValue: false,
   title: '',
   height: undefined,
   showBackdrop: false,
+  hideCloseButton: false,
+  hideDragHandle: false,
+  closeOnBackdrop: true,
+  persistent: false,
   zIndex: 0
 })
 
@@ -103,8 +123,8 @@ let headerObserver: ResizeObserver | null = null
 // ============================================================================
 // Computed
 // ============================================================================
-
-const contentProps = computed(() => props.props || {})
+const slots = useSlots()
+const hasHeaderSlot = computed(() => !!slots['header'])
 
 /** 
  * Computed zIndex - adds 9000 to the provided value 
@@ -170,7 +190,10 @@ const panelStyles = computed<Record<string, string>>(() => {
 // Gesture Handling
 // ============================================================================
 
-const closeSheet = (): void => {
+const close = (): void => {
+  if (!isVisible.value || isClosing.value) return
+
+  isClosing.value = true
   emit('before-close')
 
   setTimeout(() => {
@@ -194,14 +217,22 @@ const {
   handleContentTouchStart,
   handleContentTouchMove,
   handleContentTouchEnd
-} = useFixedGestures({
+} = useSimpleGestures({
   contentScrollTop,
-  handleClose: closeSheet
+  handleClose: () => close(),
+  persistent: computed(() => props.persistent)
 })
 
-// Header click handler (no expand in fixed mode)
+// Header click handler (no expand in simple mode)
 const handleHeaderClick = (): void => {
-  // Fixed mode: header click does nothing
+  // Simple mode: header click does nothing
+}
+
+// Backdrop click handler
+const handleBackdropClick = (): void => {
+  if (!props.persistent && props.closeOnBackdrop) {
+    close()
+  }
 }
 
 // ============================================================================
@@ -253,9 +284,7 @@ const open = (): void => {
   })
 }
 
-const close = (): void => {
-  isClosing.value = true
-}
+
 
 watch(() => props.modelValue, (newVal: boolean) => {
   if (newVal) open() // abrir modales
@@ -275,5 +304,4 @@ onBeforeUnmount(() => {
 })
 </script>
 
-<style lang="scss" scoped>
-</style>
+<style lang="scss" scoped></style>
