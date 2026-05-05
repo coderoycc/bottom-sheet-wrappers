@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watchEffect } from "vue";
-import DynamicBottomSheet from "./components/DynamicBottomSheet.vue";
-import SimpleBottomSheet from "./components/SimpleBottomSheet.vue";
+import BsDynamic from "./components/BsDynamic.vue";
+import BsSimple from "./components/BsSimple.vue";
 
 type ThemeKey = "default" | "rounded" | "dark" | "soft";
 
@@ -114,16 +114,16 @@ watchEffect(() => {
 
   </div>
 
-  <simple-bottom-sheet v-model="openAutoShort" title="Auto Height (Corto)">
+  <bs-simple v-model="openAutoShort" title="Auto Height (Corto)">
     <div class="sheet-body">
       <p>La altura se ajusta automáticamente a su contenido.</p>
       <p>Arrastra hacia abajo (swipe-down) desde la cabecera o desde cualquier parte vacía del contenido para probar el
         gesto de cierre natural.</p>
       <button class="secondary-btn" @click="openAutoShort = false">Cerrar</button>
     </div>
-  </simple-bottom-sheet>
+  </bs-simple>
 
-  <simple-bottom-sheet v-model="openAutoLong" title="Auto Height (Largo / Scroll)">
+  <bs-simple v-model="openAutoLong" title="Auto Height (Largo / Scroll)">
     <div class="sheet-body">
       <p>Este panel crece dinámicamente según su contenido pero está <strong>topado hasta un máximo (generalmente
           95dvh)</strong> para llenar la pantalla sin taparla del todo.</p>
@@ -138,18 +138,18 @@ watchEffect(() => {
       <p v-for="i in 40" :key="i">Texto y contenido de relleno para forzar scroll interno #{{ i }}</p>
       <button class="secondary-btn" @click="openAutoLong = false">Cerrar</button>
     </div>
-  </simple-bottom-sheet>
+  </bs-simple>
 
-  <simple-bottom-sheet v-model="openFixedShort" title="Fixed Height (300px)" height="300px">
+  <bs-simple v-model="openFixedShort" title="Fixed Height (300px)" height="300px">
     <div class="sheet-body">
       <p>La altura fue forzada a <code>300px</code> estáticos.</p>
       <p>Aunque no tenga gran cantidad de contenido para llenarlo, el panel preservará siempre este tamaño absoluto
         fijado, manteniendo vivas las reglas de cierre.</p>
       <button class="secondary-btn" @click="openFixedShort = false">Cerrar</button>
     </div>
-  </simple-bottom-sheet>
+  </bs-simple>
 
-  <simple-bottom-sheet v-model="openFixedFull" title="Fixed Height (90vh)" height="90vh">
+  <bs-simple v-model="openFixedFull" title="Fixed Height (90vh)" height="90vh">
     <div class="sheet-body">
       <p>Altura explícitamente forzada a <code>90vh</code>.</p>
       <p>Igual que el Auto Height con scroll, este generará overflow interno si superas el tamaño. Sus gestos priorizan
@@ -158,17 +158,17 @@ watchEffect(() => {
       <p v-for="i in 15" :key="i">Relleno de comprobación constante # {{ i }}</p>
       <button class="secondary-btn" @click="openFixedFull = false">Cerrar</button>
     </div>
-  </simple-bottom-sheet>
+  </bs-simple>
 
-  <simple-bottom-sheet v-model="openBackdropClose" title="Cierra en el Backdrop" show-backdrop>
+  <bs-simple v-model="openBackdropClose" title="Cierra en el Backdrop" show-backdrop>
     <div class="sheet-body">
       <p>El uso estándar para aislar atención: aparece una sombra sobre el fondo de tu página.</p>
       <p>Si presionas o pulsas con el ratón en ella, el panel reaccionará a él y se cerrará.</p>
       <button class="secondary-btn" @click="openBackdropClose = false">Cerrar</button>
     </div>
-  </simple-bottom-sheet>
+  </bs-simple>
 
-  <simple-bottom-sheet v-model="openBackdropNoClose" title="Backdrop sin Cierre" show-backdrop
+  <bs-simple v-model="openBackdropNoClose" title="Backdrop sin Cierre" show-backdrop
     :close-on-backdrop="false">
     <div class="sheet-body">
       <p>Teniendo asignado <code>:close-on-backdrop="false"</code>, aisla visualmente la UI inferior sin permitir
@@ -177,9 +177,9 @@ watchEffect(() => {
       </p>
       <button class="secondary-btn" @click="openBackdropNoClose = false">Cerrar</button>
     </div>
-  </simple-bottom-sheet>
+  </bs-simple>
 
-  <simple-bottom-sheet v-model="openPersistent" title="Modo Persistente" persistent show-backdrop>
+  <bs-simple v-model="openPersistent" title="Modo Persistente" persistent show-backdrop>
     <div class="sheet-body">
       <p>La opción <code>persistent="true"</code> está diseñada para captar la respuesta final interactiva. Deshabilita
         de golpe cualquier via de escape:</p>
@@ -193,9 +193,9 @@ watchEffect(() => {
       <button class="primary-btn" style="background: #ef4444;" @click="openPersistent = false">Acabar Operación
         Importante</button>
     </div>
-  </simple-bottom-sheet>
+  </bs-simple>
 
-  <simple-bottom-sheet v-model="openHiddenElements" title="Minimalista" hide-close-button hide-drag-handle>
+  <bs-simple v-model="openHiddenElements" title="Minimalista" hide-close-button hide-drag-handle>
     <div class="sheet-body">
       <p>Fueron retirados los accesorios estéticos: <code>hide-close-button</code> apaga la "X", y
         <code>hide-drag-handle</code> elimina la barra superior de drag.</p>
@@ -203,18 +203,18 @@ watchEffect(() => {
         modal.</p>
       <button class="secondary-btn" @click="openHiddenElements = false">Cerrar manual</button>
     </div>
-  </simple-bottom-sheet>
+  </bs-simple>
 
-  <simple-bottom-sheet v-model="openEvents" title="Monitor de Eventos" show-backdrop
+  <bs-simple v-model="openEvents" title="Monitor de Eventos" show-backdrop
     @update:model-value="val => handleSimpleEvent(`update:modelValue -> ${val}`)" @opened="handleSimpleEvent('opened')"
     @closed="handleSimpleEvent('closed')" @before-close="handleSimpleEvent('before-close')">
     <div class="sheet-body">
       <p>Abre la Consola de DevTools (F12) o Inspector Web del móvil y ejecuta aperturas y cierres aquí.</p>
       <button class="secondary-btn" @click="openEvents = false">Cerrar</button>
     </div>
-  </simple-bottom-sheet>
+  </bs-simple>
 
-  <dynamic-bottom-sheet v-model="openDynHalf" title="initialSize: half" :initial-size="'half'">
+  <bs-dynamic v-model="openDynHalf" title="initialSize: half" :initial-size="'half'">
     <div class="sheet-body">
       <p>El panel arranca en el estado <code>half</code> (por defecto <code>45dvh</code>).</p>
       <p>Arrastra el handle hacia <strong>arriba</strong> para expandirlo a <code>full</code>, o hacia
@@ -223,18 +223,18 @@ watchEffect(() => {
       <p>Cuando está colapsado, un click fuera del panel (sin backdrop) lo termina de cerrar completamente.</p>
       <button class="secondary-btn" @click="openDynHalf = false">Cerrar</button>
     </div>
-  </dynamic-bottom-sheet>
+  </bs-dynamic>
 
-  <dynamic-bottom-sheet v-model="openDynFull" title="initialSize: full" :initial-size="'full'">
+  <bs-dynamic v-model="openDynFull" title="initialSize: full" :initial-size="'full'">
     <div class="sheet-body">
       <p>El panel arranca directamente en el estado <code>full</code> (por defecto <code>95dvh</code>).</p>
       <p>Desde aquí, arrastra hacia abajo para pasar a <code>half</code> y luego a <code>collapsed</code>.</p>
       <p v-for="i in 20" :key="i">Relleno para probar scroll en full #{{ i }}</p>
       <button class="secondary-btn" @click="openDynFull = false">Cerrar</button>
     </div>
-  </dynamic-bottom-sheet>
+  </bs-dynamic>
 
-  <dynamic-bottom-sheet v-model="openDynCollapsed" title="initialSize: collapsed" :initial-size="'collapsed'">
+  <bs-dynamic v-model="openDynCollapsed" title="initialSize: collapsed" :initial-size="'collapsed'">
     <template #collapsed-content>
       <div style="padding: 0 16px 4px;">
         <p style="margin: 0; font-size: 14px;">👆 Toca para expandir — este contenido solo se ve en estado
@@ -248,9 +248,9 @@ watchEffect(() => {
         slot por defecto.</p>
       <button class="secondary-btn" @click="openDynCollapsed = false">Cerrar</button>
     </div>
-  </dynamic-bottom-sheet>
+  </bs-dynamic>
 
-  <dynamic-bottom-sheet v-model="openDynCustomSizes" title="Tamaños: half=30dvh, full=80dvh" :half="'30dvh'"
+  <bs-dynamic v-model="openDynCustomSizes" title="Tamaños: half=30dvh, full=80dvh" :half="'30dvh'"
     :full="'80dvh'">
     <div class="sheet-body">
       <p>Los props <code>half</code> y <code>full</code> sobreescriben los valores por defecto (<code>45dvh</code> y
@@ -260,9 +260,9 @@ watchEffect(() => {
         (<code>px</code>, <code>dvh</code>, <code>vh</code>, <code>%</code>…).</p>
       <button class="secondary-btn" @click="openDynCustomSizes = false">Cerrar</button>
     </div>
-  </dynamic-bottom-sheet>
+  </bs-dynamic>
 
-  <dynamic-bottom-sheet v-model="openDynBackdrop" title="Con Backdrop" show-backdrop>
+  <bs-dynamic v-model="openDynBackdrop" title="Con Backdrop" show-backdrop>
     <div class="sheet-body">
       <p>Con <code>show-backdrop</code> activo, se muestra una capa oscura sobre el contenido de fondo cuando el panel
         está en <code>half</code> o <code>full</code>.</p>
@@ -272,9 +272,9 @@ watchEffect(() => {
       <p>En estado <code>collapsed</code> el backdrop desaparece automáticamente.</p>
       <button class="secondary-btn" @click="openDynBackdrop = false">Cerrar</button>
     </div>
-  </dynamic-bottom-sheet>
+  </bs-dynamic>
 
-  <dynamic-bottom-sheet v-model="openDynNoBackdrop" title="Sin Backdrop">
+  <bs-dynamic v-model="openDynNoBackdrop" title="Sin Backdrop">
     <div class="sheet-body">
       <p>Sin <code>show-backdrop</code>, el fondo permanece completamente interactivo.</p>
       <p>Al hacer click o touch en cualquier zona fuera del panel (mientras está en <code>half</code> o
@@ -283,9 +283,9 @@ watchEffect(() => {
       <p>Esto permite que el usuario interactúe con la UI del fondo sin necesidad de cerrar el sheet.</p>
       <button class="secondary-btn" @click="openDynNoBackdrop = false">Cerrar</button>
     </div>
-  </dynamic-bottom-sheet>
+  </bs-dynamic>
 
-  <dynamic-bottom-sheet v-model="openDynHeaderSlot" :initial-size="'half'">
+  <bs-dynamic v-model="openDynHeaderSlot" :initial-size="'half'">
     <template #header>
       <div style="display: flex; align-items: center; gap: 8px; padding: 0 8px;">
         <span style="font-size: 20px;">🎨</span>
@@ -309,9 +309,9 @@ watchEffect(() => {
       </p>
       <button class="secondary-btn" @click="openDynHeaderSlot = false">Cerrar</button>
     </div>
-  </dynamic-bottom-sheet>
+  </bs-dynamic>
 
-  <dynamic-bottom-sheet v-model="openDynHideElements" title="Sin handle ni botón" hide-close-button hide-drag-handle>
+  <bs-dynamic v-model="openDynHideElements" title="Sin handle ni botón" hide-close-button hide-drag-handle>
     <div class="sheet-body">
       <p>Con <code>hide-close-button</code> y <code>hide-drag-handle</code> activos, el header queda limpio sin
         elementos
@@ -319,9 +319,9 @@ watchEffect(() => {
       <p>Los gestos táctiles sobre el header siguen funcionando: arrastra o haz click para alternar entre tamaños.</p>
       <button class="secondary-btn" @click="openDynHideElements = false">Cerrar manual</button>
     </div>
-  </dynamic-bottom-sheet>
+  </bs-dynamic>
 
-  <dynamic-bottom-sheet v-model="openDynEvents" title="Monitor de Eventos" show-backdrop
+  <bs-dynamic v-model="openDynEvents" title="Monitor de Eventos" show-backdrop
     @opened="handleDynEvent('opened')" @closed="handleDynEvent('closed')" @close="handleDynEvent('close')"
     @size-change="size => { dynCurrentSize = size; handleDynEvent(`size-change → ${size}`) }">
     <div class="sheet-body">
@@ -336,9 +336,9 @@ watchEffect(() => {
       </ul>
       <button class="secondary-btn" @click="openDynEvents = false">Cerrar</button>
     </div>
-  </dynamic-bottom-sheet>
+  </bs-dynamic>
 
-  <dynamic-bottom-sheet v-model="openDynTheme" title="Dynamic con tema global">
+  <bs-dynamic v-model="openDynTheme" title="Dynamic con tema global">
     <template #collapsed-content>
       <div style="padding: 0 16px 4px; font-size: 13px;">
         El tema se aplica vía variables CSS en el <code>body</code>. Prueba a cambiar arriba.
@@ -351,16 +351,16 @@ watchEffect(() => {
       <p>Cambia el selector de tema en la parte superior para ver el efecto en tiempo real.</p>
       <button class="secondary-btn" @click="openDynTheme = false">Cerrar</button>
     </div>
-  </dynamic-bottom-sheet>
+  </bs-dynamic>
 
-  <dynamic-bottom-sheet v-model="openDynLocal" title="Override local" class="local-theme">
+  <bs-dynamic v-model="openDynLocal" title="Override local" class="local-theme">
     <div class="sheet-body">
       <p>La clase <code>.local-theme</code> aplica variables CSS solo a esta instancia, sobreescribiendo el tema global
         del body.</p>
       <p>Esto permite tener múltiples bottom sheets con estilos distintos en la misma página.</p>
       <button class="secondary-btn" @click="openDynLocal = false">Cerrar</button>
     </div>
-  </dynamic-bottom-sheet>
+  </bs-dynamic>
 </template>
 
 <style>

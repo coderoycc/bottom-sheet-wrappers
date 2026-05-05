@@ -85,21 +85,10 @@ import { useDynamicSizeCalculation } from '../composables/bottom-sheet/useDynami
 import { useContentScroll } from '../composables/bottom-sheet/useContentScroll'
 
 import type { DynamicSize } from '../composables/bottom-sheet/useDynamicGestures'
+import type { DynamicBottomSheetProps } from 'src/types'
 
 
 export type { DynamicSize }
-
-export interface DynamicBottomSheetProps {
-  modelValue: boolean
-  title?: string
-  initialSize?: DynamicSize
-  half?: string
-  full?: string
-  hideCloseButton?: boolean
-  showBackdrop?: boolean
-  hideDragHandle?: boolean
-  zIndex?: number
-}
 
 defineOptions({
   inheritAttrs: false

@@ -3,26 +3,20 @@
     <Transition name="bsw-bottom-sheet">
       <div v-if="isVisible" class="bsw-bottom-sheet-wrapper" :style="{ zIndex: computedZIndex }" v-bind="$attrs">
         <!-- Backdrop Layer -->
-        <!-- Se oculta al hacer click si closeOnBackdrop = true y no es persistent -->
         <div v-if="showBackdrop" class="bsw-bottom-sheet-backdrop" :class="{
           'bsw-bottom-sheet-backdrop--visible': showBackdrop,
           'bsw-bottom-sheet-backdrop--closing': isClosing
         }" @click="handleBackdropClick"></div>
 
-        <!-- Panel Principal -->
         <div ref="panelRef" class="bsw-bottom-sheet-panel bsw-bottom-sheet--fixed" :class="[
           { 'bsw-bottom-sheet--dragging': isDragging }
         ]" :style="panelStyles" @transitionend="handleTransitionEnd">
-          <!-- Header con Handle -->
           <div ref="headerRef" class="bsw-bottom-sheet-header" @click="handleHeaderClick"
             @touchstart="handleHeaderTouchStart" @touchmove="handleHeaderTouchMove" @touchend="handleHeaderTouchEnd"
             @mousedown="handleHeaderMouseDown">
 
-            <!-- Handle -->
             <div v-if="!hideDragHandle" class="bsw-bottom-sheet-handle" />
 
-            <!-- Close Button (solo si no hay header personalizado) -->
-            <!-- Se oculta si hideCloseButton es true o si persistent es true -->
             <button v-if="!hideCloseButton && !persistent && !hasHeaderSlot" class="bsw-bottom-sheet-close-btn"
               @click.stop="close" aria-label="Close">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
@@ -32,7 +26,6 @@
               </svg>
             </button>
 
-            <!-- Header Content -->
             <div class="bsw-bottom-sheet-header-content">
               <slot name="header">
                 <div v-if="title" class="bsw-bottom-sheet-title">{{ title }}</div>
@@ -40,7 +33,6 @@
             </div>
           </div>
 
-          <!-- Content -->
           <div ref="contentWrapperRef" class="bsw-bottom-sheet-content"
             :class="{ 'bsw-bottom-sheet-content--scrollable': isScrollable }" @scroll="handleContentScroll"
             @touchstart="handleContentTouchStart" @touchmove="handleContentTouchMove" @touchend="handleContentTouchEnd">
@@ -59,27 +51,11 @@ import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick, useSlots } 
 import { useAutoHeight } from '../composables/bottom-sheet/useAutoHeight'
 import { useSimpleGestures } from '../composables/bottom-sheet/useSimpleGestures'
 import { useContentScroll } from '../composables/bottom-sheet/useContentScroll'
+import type { SimpleBottomSheetProps } from 'src/types'
 
 defineOptions({
   inheritAttrs: false
 })
-
-// ============================================================================
-// Props & Emits
-// ============================================================================
-
-export interface SimpleBottomSheetProps {
-  modelValue?: boolean
-  props?: Record<string, any>
-  title?: string
-  height?: string | number
-  showBackdrop?: boolean
-  hideCloseButton?: boolean
-  hideDragHandle?: boolean
-  closeOnBackdrop?: boolean
-  persistent?: boolean
-  zIndex?: number
-}
 
 const props = withDefaults(defineProps<SimpleBottomSheetProps>(), {
   modelValue: false,
@@ -88,7 +64,7 @@ const props = withDefaults(defineProps<SimpleBottomSheetProps>(), {
   showBackdrop: false,
   hideCloseButton: false,
   hideDragHandle: false,
-  closeOnBackdrop: true,
+  closeOnBackdrop: false,
   persistent: false,
   zIndex: 0
 })
@@ -100,29 +76,17 @@ const emit = defineEmits<{
   'before-close': []
 }>()
 
-// ============================================================================
-// DOM Refs
-// ============================================================================
-
 const headerRef = ref<HTMLElement | null>(null)
 const contentWrapperRef = ref<HTMLElement | null>(null)
 const innerContentRef = ref<HTMLElement | null>(null)
 const panelRef = ref<HTMLElement | null>(null)
 
-// ============================================================================
-// State
-// ============================================================================
-
 const isVisible = ref(props.modelValue)
 const isClosing = ref(false)
 const headerHeight = ref(0)
 
-// ResizeObserver for header
 let headerObserver: ResizeObserver | null = null
 
-// ============================================================================
-// Computed
-// ============================================================================
 const slots = useSlots()
 const hasHeaderSlot = computed(() => !!slots['header'])
 
@@ -133,18 +97,10 @@ const computedZIndex = computed(() => {
   return (props.zIndex || 0) + 9000
 })
 
-// ============================================================================
-// Content Scroll Tracking
-// ============================================================================
-
 const {
   contentScrollTop,
   handleContentScroll
 } = useContentScroll()
-
-// ============================================================================
-// Auto Height Composable
-// ============================================================================
 
 const {
   panelHeight,
@@ -157,16 +113,10 @@ const {
   headerHeight
 })
 
-/**
- * Apply custom height from prop
- */
 watch(() => props.height, (newHeight) => {
   setCustomHeight(newHeight)
 }, { immediate: true })
 
-/**
- * Panel inline styles with drag transform
- */
 const panelStyles = computed<Record<string, string>>(() => {
   const height = panelHeight.value
   const styles: Record<string, string> = { height }
@@ -185,10 +135,6 @@ const panelStyles = computed<Record<string, string>>(() => {
 
   return styles
 })
-
-// ============================================================================
-// Gesture Handling
-// ============================================================================
 
 const close = (): void => {
   if (!isVisible.value || isClosing.value) return
@@ -228,16 +174,11 @@ const handleHeaderClick = (): void => {
   // Simple mode: header click does nothing
 }
 
-// Backdrop click handler
 const handleBackdropClick = (): void => {
   if (!props.persistent && props.closeOnBackdrop) {
     close()
   }
 }
-
-// ============================================================================
-// Transition & Scroll Lock
-// ============================================================================
 
 const handleTransitionEnd = (event: TransitionEvent): void => {
   if (event.target !== panelRef.value) return
@@ -287,7 +228,7 @@ const open = (): void => {
 
 
 watch(() => props.modelValue, (newVal: boolean) => {
-  if (newVal) open() // abrir modales
+  if (newVal) open() 
   else close()
 })
 
